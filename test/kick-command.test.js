@@ -260,6 +260,44 @@ test('a moderator reaction kicks the message author using the message body as it
   }]);
 });
 
+test('a source reply failure does not change a completed reaction kick audit', async () => {
+  const target = { id: 'target-user', ...makeTarget() };
+  const guild = {
+    id: 'guild-reply-failure',
+    name: 'Test Guild',
+    members: {
+      fetch: async id => id === 'moderator-user'
+        ? { roles: { cache: { has: roleId => roleId === 'moderator' } } }
+        : target
+    }
+  };
+  const originalConsoleError = console.error;
+  console.error = () => {};
+  try {
+    const handled = await handleMessageReactionAdd(makeReaction({
+      message: {
+        guild,
+        guildId: guild.id,
+        channelId: 'channel-reply-failure',
+        author: { id: target.id },
+        content: 'repeated spam',
+        reply: async () => { throw new Error('source message is unavailable'); }
+      }
+    }), { id: 'moderator-user', bot: false });
+
+    assert.equal(handled, true);
+  } finally {
+    console.error = originalConsoleError;
+  }
+
+  assert.equal(target.calls[1].reason, 'repeated spam');
+  assert.deepEqual(database.prepare(`
+    SELECT success, error_code
+    FROM command_events
+    WHERE guild_id = 'guild-reply-failure'
+  `).all(), [{ success: 1, error_code: null }]);
+});
+
 test('a reaction to an empty message uses the documented fallback reason', async () => {
   const target = { id: 'target-user', ...makeTarget() };
   const guild = {

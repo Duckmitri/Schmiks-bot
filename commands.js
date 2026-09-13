@@ -297,20 +297,28 @@ async function handleMessageReactionAdd(reaction, user) {
     const target = await guild.members.fetch(message.author.id);
     const reason = message.content.trim() || 'You have been kicked from the server, no reason provided';
     const result = await executeKick({ guild, target, reason });
-    await message.reply(result.success
-      ? result.dmDelivered
-        ? 'The member was kicked.'
-        : 'The member was kicked, but their DM notification failed.'
-      : 'That member cannot be kicked.');
     auditInteraction(auditContext, 'reaction', 'kick', startedAt, result);
+    try {
+      await message.reply(result.success
+        ? result.dmDelivered
+          ? 'The member was kicked.'
+          : 'The member was kicked, but their DM notification failed.'
+        : 'That member cannot be kicked.');
+    } catch (error) {
+      console.error('Could not reply to reaction kick command:', error);
+    }
     return true;
   } catch (error) {
     console.error('Error in reaction kick command:', error);
-    await message.reply('An error occurred while executing the kick command.');
     auditInteraction(auditContext, 'reaction', 'kick', startedAt, {
       success: false,
       errorCode: 'EXECUTION_FAILED'
     });
+    try {
+      await message.reply('An error occurred while executing the kick command.');
+    } catch (replyError) {
+      console.error('Could not reply to reaction kick command:', replyError);
+    }
     return true;
   }
 }
