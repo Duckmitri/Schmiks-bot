@@ -1,0 +1,22 @@
+{
+  "name": "schmiks",
+  "version": "1.0.0",
+  "description": "Small Discord moderation bot with a local prefix dashboard",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dashboard": "node dashboard/server.js",
+    "test": "node --test",
+    "check": "node --check bot.js && node --check commands.js && node --check config.js && node --check database.js && node --check event-logging.js && node --check dashboard/server.js && node --test"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "discord.js": "^14.27.0",
+    "express": "^5.2.1"
+  }
+}

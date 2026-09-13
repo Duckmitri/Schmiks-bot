@@ -1,0 +1,59 @@
+{
+  "prefix": "!",
+  "logging": {
+    "channelId": "",
+    "retentionDays": 90,
+    "colors": {
+      "commandExecution": "#5865F2",
+      "messageEdit": "#FEE75C",
+      "messageDelete": "#ED4245",
+      "memberJoin": "#57F287",
+      "memberLeave": "#ED4245",
+      "voiceJoin": "#57F287",
+      "voiceLeave": "#ED4245"
+    },
+    "delivery": {
+      "commandExecution": false,
+      "messageEdit": false,
+      "messageDelete": false,
+      "memberJoin": false,
+      "memberLeave": false,
+      "voiceJoin": false,
+      "voiceLeave": false
+    }
+  },
+  "moderatorRoleId": [],
+  "adminRoleId": [],
+  "slashCommands": [
+    {
+      "name": "server-info",
+      "description": "Show server information"
+    },
+    {
+      "name": "links",
+      "description": "Show useful server links"
+    }
+  ],
+  "links": [
+    {
+      "name": "YouTube",
+      "url": "https://youtube.com/@example",
+      "iconUrl": ""
+    },
+    {
+      "name": "Twitch",
+      "url": "https://twitch.tv/example",
+      "iconUrl": ""
+    },
+    {
+      "name": "TikTok",
+      "url": "https://tiktok.com/@example",
+      "iconUrl": ""
+    },
+    {
+      "name": "Instagram",
+      "url": "https://instagram.com/example",
+      "iconUrl": ""
+    }
+  ]
+}

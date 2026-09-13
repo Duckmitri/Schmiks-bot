@@ -1,0 +1,12 @@
+node_modules/
+.claude/
+.superpowers/
+docs/
+config/config.json
+.env
+handoff.MD
+.DS_Store
+npm-debug.log*
+data/*.db
+data/*.db-wal
+data/*.db-shm
