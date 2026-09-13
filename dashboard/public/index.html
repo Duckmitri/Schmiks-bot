@@ -101,7 +101,14 @@
                         <button type="button" class="picker-close" data-color-close aria-label="Close color picker">×</button>
                     </header>
                     <div class="picker-preview"></div>
-                    <label class="hex-field" for="colorHexInput"><span>HEX</span><input id="colorHexInput" maxlength="7" spellcheck="false" autocomplete="off"></label>
+                    <div class="color-fields">
+                        <label class="color-field" for="colorHexInput"><span>HEX</span><input id="colorHexInput" type="text" maxlength="7" spellcheck="false" autocomplete="off"></label>
+                        <div class="color-field"><span>RGB</span><div class="rgb-inputs" aria-label="RGB color values">
+                            <label><span>R</span><input type="number" min="0" max="255" inputmode="numeric" data-color-number="red" aria-label="Red"></label>
+                            <label><span>G</span><input type="number" min="0" max="255" inputmode="numeric" data-color-number="green" aria-label="Green"></label>
+                            <label><span>B</span><input type="number" min="0" max="255" inputmode="numeric" data-color-number="blue" aria-label="Blue"></label>
+                        </div></div>
+                    </div>
                     <div class="rgb-controls">
                         <label><span>Red <output data-channel-value="red">0</output></span><input type="range" min="0" max="255" data-color-channel="red"></label>
                         <label><span>Green <output data-channel-value="green">0</output></span><input type="range" min="0" max="255" data-color-channel="green"></label>

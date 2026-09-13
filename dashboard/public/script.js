@@ -42,6 +42,8 @@ const colorPopover = document.getElementById('colorPopover');
 const colorHexInput = document.getElementById('colorHexInput');
 const colorChannels = Object.fromEntries([...document.querySelectorAll('[data-color-channel]')]
     .map(input => [input.dataset.colorChannel, input]));
+const colorNumbers = Object.fromEntries([...document.querySelectorAll('[data-color-number]')]
+    .map(input => [input.dataset.colorNumber, input]));
 let activeColorKey;
 let originalColor;
 
@@ -53,6 +55,7 @@ function setPickerColor(value) {
     colorPopover.style.setProperty('--picker-color', hex);
     for (const [channel, input] of Object.entries(colorChannels)) {
         input.value = color[channel];
+        colorNumbers[channel].value = color[channel];
         document.querySelector(`[data-channel-value="${channel}"]`).textContent = color[channel];
     }
     return true;
@@ -91,6 +94,13 @@ for (const input of Object.values(colorChannels)) {
 }
 
 colorHexInput.addEventListener('input', () => setPickerColor(colorHexInput.value));
+for (const input of Object.values(colorNumbers)) {
+    input.addEventListener('input', () => {
+        const color = normalizeRgbColor(Object.fromEntries(Object.entries(colorNumbers)
+            .map(([channel, numberInput]) => [channel, numberInput.value])));
+    if (color) setPickerColor(formatHexColor(color));
+    });
+}
 document.querySelector('[data-color-reset]').addEventListener('click', () => setPickerColor(originalColor));
 document.querySelector('[data-color-close]').addEventListener('click', () => colorPopover.hidePopover());
 document.querySelector('[data-color-done]').addEventListener('click', () => {

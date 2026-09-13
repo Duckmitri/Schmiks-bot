@@ -25,7 +25,7 @@ const {
 const { handleButtonInteraction, handlePrefixCommand, handleSlashCommand } = require('../commands');
 const { database } = require('../database');
 const app = require('../dashboard/server');
-const { formatHexColor, parseHexColor } = require('../dashboard/public/color');
+const { formatHexColor, normalizeRgbColor, parseHexColor } = require('../dashboard/public/color');
 
 const defaultLogColors = {
   commandExecution: '#5865F2',
@@ -115,6 +115,8 @@ test('logging config validates and normalizes individual embed colors', () => {
 test('dashboard color picker converts between saved hex and RGB controls', () => {
   assert.deepEqual(parseHexColor('#5865F2'), { red: 88, green: 101, blue: 242 });
   assert.equal(formatHexColor({ red: 88, green: 101, blue: 242 }), '#5865F2');
+  assert.deepEqual(normalizeRgbColor({ red: '256', green: '101', blue: '-1' }), { red: 255, green: 101, blue: 0 });
+  assert.equal(normalizeRgbColor({ red: '', green: '101', blue: '242' }), null);
 });
 
 test('logging config rejects enabled delivery without a channel ID', () => {
@@ -388,6 +390,8 @@ test('dashboard returns and saves prefix plus logging without dropping unrelated
   assert.equal((dashboardHtml.match(/data-color-trigger=/g) ?? []).length, 7);
   assert.equal((dashboardHtml.match(/class="color-control"/g) ?? []).length, 7);
   assert.match(dashboardHtml, /id="colorPopover"[^>]*popover/);
+  assert.match(dashboardHtml, /id="colorHexInput"[^>]*type="text"/);
+  assert.equal((dashboardHtml.match(/data-color-number=/g) ?? []).length, 3);
   for (const key of Object.keys(defaultLogColors)) {
     assert.match(dashboardHtml, new RegExp(`data-color-key="${key}"`));
   }

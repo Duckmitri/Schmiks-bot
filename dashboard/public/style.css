@@ -8,6 +8,7 @@
     --secondary: #6e6e73;
     --separator: rgba(60, 60, 67, .18);
     --field: rgba(118, 118, 128, .12);
+    --slider-track: #d1d1d6;
     --success: #248a3d;
     --danger: #d70015;
 }
@@ -144,12 +145,24 @@ input[type="checkbox"]:focus-visible { outline: 3px solid rgba(0, 122, 255, .35)
 .picker-close { width: 28px; height: 28px; padding: 0; color: var(--secondary); background: var(--field); border: 0; border-radius: 50%; font-size: 20px; line-height: 1; cursor: pointer; }
 .picker-close:hover { color: var(--text); }
 .picker-preview { height: 64px; margin-bottom: 12px; border: 1px solid var(--separator); border-radius: 10px; background: var(--picker-color); }
-.hex-field { display: grid; grid-template-columns: 42px 1fr; align-items: center; margin-bottom: 14px; color: var(--secondary); font-size: 11px; }
-.hex-field input { width: 100%; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.color-fields { display: grid; gap: 8px; margin-bottom: 14px; }
+.color-field { display: grid; grid-template-columns: 42px 1fr; align-items: center; color: var(--secondary); font-size: 11px; }
+.color-field input { width: 100%; border-radius: 8px; font-variant-numeric: tabular-nums; }
+#colorHexInput { text-transform: uppercase; }
+.rgb-inputs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.rgb-inputs label { position: relative; }
+.rgb-inputs span { position: absolute; top: 50%; left: 8px; transform: translateY(-50%); }
+.rgb-inputs input[type="number"] { width: 100%; padding-left: 22px; appearance: textfield; }
+.rgb-inputs input::-webkit-inner-spin-button { appearance: none; }
 .rgb-controls { display: grid; gap: 11px; }
 .rgb-controls label > span { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
 .rgb-controls output { color: var(--secondary); font-variant-numeric: tabular-nums; }
-.rgb-controls input { width: 100%; accent-color: var(--picker-color); }
+.rgb-controls input { width: 100%; height: 20px; margin: 0; appearance: none; background: transparent; cursor: pointer; }
+.rgb-controls input::-webkit-slider-runnable-track { height: 5px; border-radius: 999px; background: var(--slider-track); }
+.rgb-controls input::-webkit-slider-thumb { width: 17px; height: 17px; margin-top: -6px; appearance: none; border: 2px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: 0 1px 4px rgba(0, 0, 0, .28); }
+.rgb-controls input::-moz-range-track { height: 5px; border-radius: 999px; background: var(--slider-track); }
+.rgb-controls input::-moz-range-thumb { width: 13px; height: 13px; border: 2px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: 0 1px 4px rgba(0, 0, 0, .28); }
+.rgb-controls input:focus-visible { outline: 3px solid rgba(0, 122, 255, .25); outline-offset: 2px; border-radius: 999px; }
 .picker-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
 .save-bar { position: fixed; z-index: 2; right: 0; bottom: 0; left: 260px; display: flex; align-items: center; justify-content: flex-end; min-height: 72px; padding: 14px max(24px, calc((100vw - 260px - 760px) / 2)); background: rgba(242, 242, 247, .8); border-top: 1px solid var(--separator); backdrop-filter: blur(22px) saturate(150%); -webkit-backdrop-filter: blur(22px) saturate(150%); }
@@ -165,7 +178,7 @@ input[type="checkbox"]:focus-visible { outline: 3px solid rgba(0, 122, 255, .35)
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 @media (prefers-color-scheme: dark) {
-    :root { --background: #1c1c1e; --sidebar: rgba(38, 38, 41, .86); --surface: #2c2c2e; --text: #f5f5f7; --secondary: #aeaeb2; --separator: rgba(255, 255, 255, .12); --field: rgba(118, 118, 128, .24); --success: #30d158; --danger: #ff453a; }
+    :root { --background: #1c1c1e; --sidebar: rgba(38, 38, 41, .86); --surface: #2c2c2e; --text: #f5f5f7; --secondary: #aeaeb2; --separator: rgba(255, 255, 255, .12); --field: rgba(118, 118, 128, .24); --slider-track: #48484a; --success: #30d158; --danger: #ff453a; }
     .save-bar { background: rgba(28, 28, 30, .82); }
     #colorPopover { background: rgba(44, 44, 46, .96); }
 }

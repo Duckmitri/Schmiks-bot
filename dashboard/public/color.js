@@ -14,4 +14,10 @@ function formatHexColor({ red, green, blue }) {
     return `#${hex(red)}${hex(green)}${hex(blue)}`.toUpperCase();
 }
 
-if (typeof module !== 'undefined') module.exports = { formatHexColor, parseHexColor };
+function normalizeRgbColor(color) {
+    if (Object.values(color).some(value => value === '' || !Number.isFinite(Number(value)))) return null;
+    return Object.fromEntries(Object.entries(color)
+        .map(([channel, value]) => [channel, Math.max(0, Math.min(255, Math.round(Number(value))))]));
+}
+
+if (typeof module !== 'undefined') module.exports = { formatHexColor, normalizeRgbColor, parseHexColor };
