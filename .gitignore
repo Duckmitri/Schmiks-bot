@@ -1,6 +1,7 @@
 node_modules/
 .claude/
 .superpowers/
+.worktrees/
 docs/
 config/config.json
 .env
