@@ -14,6 +14,7 @@ const {
   readLinks,
   readLoggingConfig,
   readPrefix,
+  readReactionCommands,
   readRoleIds,
   readSlashCommands,
   validateLoggingConfig,
@@ -230,6 +231,32 @@ test('slash command registration includes the logs choices', () => {
     { name: 'general', value: 'general' },
     { name: 'messages', value: 'messages' },
     { name: 'commands', value: 'commands' }
+  ]);
+});
+
+test('reaction command config ignores empty emoji and command mappings', () => {
+  fs.writeFileSync(process.env.CONFIG_PATH, JSON.stringify({
+    reactionCommands: { '🥾': 'kick', '': 'kick', '❌': '' },
+    slashCommands: [{ name: 'links', description: 'Show useful server links' }]
+  }));
+
+  assert.deepEqual(readReactionCommands(), { '🥾': 'kick' });
+});
+
+test('kick slash definition requires a target user and reason string', () => {
+  fs.writeFileSync(process.env.CONFIG_PATH, JSON.stringify({
+    reactionCommands: { '🥾': 'kick' },
+    slashCommands: [
+      { name: 'kick', description: 'Configured placeholder' },
+      { name: 'links', description: 'Show useful server links' }
+    ]
+  }));
+
+  const kickCommand = readSlashCommands().find(command => command.name === 'kick');
+
+  assert.deepEqual(kickCommand.options.map(({ name, type, required }) => ({ name, type, required })), [
+    { name: 'target', type: 6, required: true },
+    { name: 'reason', type: 3, required: true }
   ]);
 });
 

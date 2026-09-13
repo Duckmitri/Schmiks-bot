@@ -159,6 +159,14 @@ function readLinks() {
   }
 }
 
+function readReactionCommands() {
+  const source = readConfig().reactionCommands;
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return {};
+  return Object.fromEntries(Object.entries(source).filter(([emoji, command]) =>
+    emoji.trim() && typeof command === 'string' && command.trim()
+  ));
+}
+
 function readSlashCommands() {
   try {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -177,6 +185,18 @@ function readSlashCommands() {
 }
 
 function addBuiltInSlashCommands(commands) {
+  const kickCommand = new SlashCommandBuilder()
+    .setName('kick')
+    .setDescription('Kick a member')
+    .addUserOption(option => option
+      .setName('target')
+      .setDescription('Member to kick')
+      .setRequired(true))
+    .addStringOption(option => option
+      .setName('reason')
+      .setDescription('Reason for kicking')
+      .setRequired(true));
+
   const logsCommand = new SlashCommandBuilder()
     .setName('logs')
     .setDescription('View server logs')
@@ -191,7 +211,8 @@ function addBuiltInSlashCommands(commands) {
       ));
 
   return [
-    ...commands.filter(command => command.name !== 'logs'),
+    ...commands.filter(command => command.name !== 'logs' && command.name !== 'kick'),
+    kickCommand.toJSON(),
     logsCommand.toJSON()
   ];
 }
@@ -219,5 +240,6 @@ module.exports = {
   writeDashboardConfig,
   readRoleIds,
   readLinks,
+  readReactionCommands,
   readSlashCommands
 };

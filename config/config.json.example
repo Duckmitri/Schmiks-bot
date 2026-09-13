@@ -24,6 +24,9 @@
   },
   "moderatorRoleId": [],
   "adminRoleId": [],
+  "reactionCommands": {
+    "🥾": "kick"
+  },
   "slashCommands": [
     {
       "name": "server-info",
