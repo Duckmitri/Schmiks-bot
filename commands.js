@@ -10,7 +10,7 @@ const { deliverLogEvent } = require('./event-logging');
 
 // Define command sets
 const publicCommands = ['links'];
-const moderatorCommands = ['server-info'];
+const moderatorCommands = ['server-info', 'kick'];
 const adminCommands = ['logs'];
 const linkPlatforms = ['YouTube', 'Twitch', 'TikTok', 'Instagram'];
 const logsPageSize = 10;
@@ -252,6 +252,23 @@ function logCategoryLabel(category) {
   return category === 'commands' ? 'command' : category === 'messages' ? 'message' : 'general';
 }
 
+async function executeKick({ guild, target, reason }) {
+  if (!target?.kickable) return { success: false, errorCode: 'TARGET_NOT_KICKABLE' };
+
+  const embed = new EmbedBuilder()
+    .setColor(0xED4245)
+    .setTitle(`You have been kicked from ${guild.name}`)
+    .setDescription(reason);
+  let dmDelivered = true;
+  try {
+    await target.send({ embeds: [embed] });
+  } catch {
+    dmDelivered = false;
+  }
+  await target.kick(reason);
+  return { success: true, dmDelivered };
+}
+
 // Command implementations
 const commandHandlers = {
   'server-info': async (messageOrInteraction, argsOrOptions, isSlash) => {
@@ -331,6 +348,42 @@ const commandHandlers = {
     } catch (error) {
       console.error('Error in links command:', error);
       await messageOrInteraction.reply({ content: 'An error occurred while executing the command.' });
+      return { success: false, errorCode: 'EXECUTION_FAILED' };
+    }
+  },
+
+  'kick': async (messageOrInteraction, argsOrOptions, isSlash) => {
+    try {
+      const target = isSlash
+        ? messageOrInteraction.options.getMember('target')
+        : messageOrInteraction.mentions.members.first();
+      const reason = isSlash
+        ? messageOrInteraction.options.getString('reason', true)
+        : argsOrOptions.slice(1).join(' ').trim();
+
+      if (!target || !reason) {
+        const invokedCommand = isSlash
+          ? '/kick'
+          : messageOrInteraction.content.trim().split(/\s+/)[0];
+        await messageOrInteraction.reply(`Usage: ${invokedCommand} @member <reason>`);
+        return { success: false, errorCode: 'INVALID_OPTION' };
+      }
+
+      const result = await executeKick({ guild: messageOrInteraction.guild, target, reason });
+      if (!result.success) {
+        await messageOrInteraction.reply('That member cannot be kicked.');
+        return result;
+      }
+
+      await messageOrInteraction.reply(result.dmDelivered
+        ? 'The member was kicked.'
+        : 'The member was kicked, but their DM notification failed.');
+      return result;
+    } catch (error) {
+      console.error('Error in kick command:', error);
+      const errorReply = { content: 'An error occurred while executing the kick command.' };
+      if (isSlash) errorReply.ephemeral = true;
+      await messageOrInteraction.reply(errorReply);
       return { success: false, errorCode: 'EXECUTION_FAILED' };
     }
   },
@@ -596,6 +649,7 @@ module.exports = {
   buildCommandLogsView,
   buildMessageLogsView,
   buildGeneralLogsView,
+  executeKick,
   handleButtonInteraction,
   handlePrefixCommand,
   handleSlashCommand
