@@ -55,7 +55,8 @@ Open `http://127.0.0.1:3000`. The dashboard binds only to the local machine and 
 Configuration precedence is `BOT_PREFIX`, then `config/config.json`, then `!`. Set `CONFIG_PATH` to store the JSON file elsewhere and `PORT` to change the dashboard port. If `BOT_PREFIX` is set, the dashboard cannot override it.
 
 This is the web dashboard, you can manipulate a bunch of configuartions for the bot directly.
-<img width="587" height="894" alt="dashboard-sc" src="https://github.com/user-attachments/assets/66b6175c-d038-49cb-84e7-40f1c7121217" />
+<img width="591" height="756" alt="dashboard-sc" src="https://github.com/user-attachments/assets/14b3e947-d73e-4d0c-a599-8a9118c87561" />
+
 
 The color picker supports RGB, HSL, and HEX formats for color, you can also use the provided color picker
 <img width="637" height="338" alt="colors-sc" src="https://github.com/user-attachments/assets/6e91ac54-a335-4f70-a55a-360a1a4855ac" />
