@@ -42,7 +42,7 @@ ORDER BY id DESC
 LIMIT 100;
 ```
 
-## Local dashboard
+## Dashboard Usage
 
 ```powershell
 npm run dashboard
@@ -51,6 +51,10 @@ npm run dashboard
 Open `http://127.0.0.1:3000`. The dashboard binds only to the local machine and edits the prefix and logging settings in `config/config.json`; the bot reads those values as events occur, so changes take effect immediately.
 
 Configuration precedence is `BOT_PREFIX`, then `config/config.json`, then `!`. Set `CONFIG_PATH` to store the JSON file elsewhere and `PORT` to change the dashboard port. If `BOT_PREFIX` is set, the dashboard cannot override it.
+
+<img width="587" height="894" alt="dashboard-sc" src="https://github.com/user-attachments/assets/66b6175c-d038-49cb-84e7-40f1c7121217" />
+<img width="637" height="338" alt="colors-sc" src="https://github.com/user-attachments/assets/6e91ac54-a335-4f70-a55a-360a1a4855ac" />
+
 
 ## Development workflow
 
