@@ -8,13 +8,19 @@ const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'schmiks-kick-c
 process.env.CONFIG_PATH = path.join(temporaryDirectory, 'config.json');
 process.env.DATABASE_PATH = path.join(temporaryDirectory, 'schmiks.db');
 
-const { executeKick, handlePrefixCommand, handleSlashCommand } = require('../commands');
+const {
+  executeKick,
+  handleMessageReactionAdd,
+  handlePrefixCommand,
+  handleSlashCommand
+} = require('../commands');
 const { database } = require('../database');
 
 function writeRoles() {
   fs.writeFileSync(process.env.CONFIG_PATH, JSON.stringify({
     moderatorRoleId: ['moderator'],
-    adminRoleId: []
+    adminRoleId: [],
+    reactionCommands: { '🥾': 'kick' }
   }));
 }
 
@@ -34,6 +40,10 @@ function makeTarget({ kickable = true, sendError } = {}) {
 }
 
 test.beforeEach(writeRoles);
+
+function makeReaction({ emoji = { name: '🥾' }, message, partial = false, fetch } = {}) {
+  return { emoji, message, partial, fetch };
+}
 
 test.after(() => {
   if (database.open) database.close();
@@ -201,4 +211,211 @@ test('executeKick rejects targets that are not kickable without sending or kicki
 
   assert.deepEqual(result, { success: false, errorCode: 'TARGET_NOT_KICKABLE' });
   assert.deepEqual(target.calls, []);
+});
+
+test('a moderator reaction kicks the message author using the message body as its reason', async () => {
+  const target = { id: 'target-user', ...makeTarget() };
+  const replies = [];
+  const memberFetches = [];
+  const guild = {
+    id: 'guild-reaction',
+    name: 'Test Guild',
+    members: {
+      fetch: async id => {
+        memberFetches.push(id);
+        return id === 'moderator-user'
+          ? { roles: { cache: { has: roleId => roleId === 'moderator' } } }
+          : target;
+      }
+    }
+  };
+  const reaction = makeReaction({
+    message: {
+      guild,
+      guildId: guild.id,
+      channelId: 'channel-reaction',
+      author: { id: target.id },
+      content: 'repeated spam',
+      reply: async payload => replies.push(payload)
+    }
+  });
+
+  const handled = await handleMessageReactionAdd(reaction, { id: 'moderator-user', bot: false });
+
+  assert.equal(handled, true);
+  assert.deepEqual(memberFetches, ['moderator-user', 'target-user']);
+  assert.equal(target.calls[1].reason, 'repeated spam');
+  assert.match(replies[0], /kicked/i);
+  assert.deepEqual(database.prepare(`
+    SELECT guild_id, channel_id, user_id, interaction_type, command_name, success
+    FROM command_events
+    WHERE interaction_type = 'reaction'
+  `).all(), [{
+    guild_id: 'guild-reaction',
+    channel_id: 'channel-reaction',
+    user_id: 'moderator-user',
+    interaction_type: 'reaction',
+    command_name: 'kick',
+    success: 1
+  }]);
+});
+
+test('a reaction to an empty message uses the documented fallback reason', async () => {
+  const target = { id: 'target-user', ...makeTarget() };
+  const guild = {
+    id: 'guild-empty-reaction',
+    name: 'Test Guild',
+    members: {
+      fetch: async id => id === 'moderator-user'
+        ? { roles: { cache: { has: roleId => roleId === 'moderator' } } }
+        : target
+    }
+  };
+
+  await handleMessageReactionAdd(makeReaction({
+    message: {
+      guild,
+      guildId: guild.id,
+      channelId: 'channel-empty-reaction',
+      author: { id: target.id },
+      content: '   ',
+      reply: async () => {}
+    }
+  }), { id: 'moderator-user', bot: false });
+
+  assert.equal(target.calls[1].reason, 'You have been kicked from the server, no reason provided');
+});
+
+test('a bot reaction does not perform a kick', async () => {
+  const handled = await handleMessageReactionAdd(makeReaction({
+    message: {
+      get guild() {
+        throw new Error('bot reactions must not read the message');
+      }
+    }
+  }), { id: 'bot-user', bot: true });
+
+  assert.equal(handled, false);
+});
+
+test('an unauthorized reaction does not perform a kick', async () => {
+  const target = { id: 'target-user', ...makeTarget() };
+  const guild = {
+    id: 'guild-unauthorized-reaction',
+    name: 'Test Guild',
+    members: {
+      fetch: async id => id === 'moderator-user'
+        ? { roles: { cache: { has: () => false } } }
+        : target
+    }
+  };
+
+  const handled = await handleMessageReactionAdd(makeReaction({
+    message: {
+      guild,
+      author: { id: target.id },
+      content: 'repeated spam',
+      reply: async () => {}
+    }
+  }), { id: 'moderator-user', bot: false });
+
+  assert.equal(handled, false);
+  assert.deepEqual(target.calls, []);
+});
+
+test('a nonconfigured reaction returns false without side effects', async () => {
+  const memberFetches = [];
+  const handled = await handleMessageReactionAdd(makeReaction({
+    emoji: { name: '❌' },
+    message: {
+      guild: { members: { fetch: async id => memberFetches.push(id) } },
+      author: { id: 'target-user' },
+      content: 'repeated spam'
+    }
+  }), { id: 'moderator-user', bot: false });
+
+  assert.equal(handled, false);
+  assert.deepEqual(memberFetches, []);
+});
+
+test('a configured custom emoji ID routes the reaction command', async () => {
+  const target = { id: 'target-user', ...makeTarget() };
+  const guild = {
+    id: 'guild-custom-reaction',
+    name: 'Test Guild',
+    members: {
+      fetch: async id => id === 'moderator-user'
+        ? { roles: { cache: { has: roleId => roleId === 'moderator' } } }
+        : target
+    }
+  };
+  fs.writeFileSync(process.env.CONFIG_PATH, JSON.stringify({
+    moderatorRoleId: ['moderator'],
+    adminRoleId: [],
+    reactionCommands: { 'boot-emoji-id': 'kick' }
+  }));
+
+  const handled = await handleMessageReactionAdd(makeReaction({
+    emoji: { id: 'boot-emoji-id', name: 'not-configured-by-name' },
+    message: {
+      guild,
+      guildId: guild.id,
+      channelId: 'channel-custom-reaction',
+      author: { id: target.id },
+      content: 'repeated spam',
+      reply: async () => {}
+    }
+  }), { id: 'moderator-user', bot: false });
+
+  assert.equal(handled, true);
+  assert.equal(target.calls[1].reason, 'repeated spam');
+});
+
+test('a reaction fetches partial reaction and message data before routing', async () => {
+  const target = { id: 'target-user', ...makeTarget() };
+  const fetches = [];
+  const guild = {
+    id: 'guild-partial-reaction',
+    name: 'Test Guild',
+    members: {
+      fetch: async id => id === 'moderator-user'
+        ? { roles: { cache: { has: roleId => roleId === 'moderator' } } }
+        : target
+    }
+  };
+  const completeMessage = {
+    guild,
+    guildId: guild.id,
+    channelId: 'channel-partial-reaction',
+    author: { id: target.id },
+    content: 'repeated spam',
+    reply: async () => {}
+  };
+  const partialMessage = {
+    partial: true,
+    fetch: async () => {
+      fetches.push('message');
+      return completeMessage;
+    },
+    get author() {
+      throw new Error('message was read before fetching');
+    }
+  };
+  const completeReaction = makeReaction({ message: partialMessage });
+  const partialReaction = {
+    partial: true,
+    fetch: async () => {
+      fetches.push('reaction');
+      return completeReaction;
+    },
+    get emoji() {
+      throw new Error('reaction was read before fetching');
+    }
+  };
+
+  const handled = await handleMessageReactionAdd(partialReaction, { id: 'moderator-user', bot: false });
+
+  assert.equal(handled, true);
+  assert.deepEqual(fetches, ['reaction', 'message']);
+  assert.equal(target.calls[1].reason, 'repeated spam');
 });

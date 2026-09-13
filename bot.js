@@ -5,7 +5,12 @@ if (process.noDeprecation === undefined) {
 
 const { Client, GatewayIntentBits, Partials, PermissionFlagsBits } = require('discord.js');
 const { readPrefix, readRoleIds, readSlashCommands } = require('./config');
-const { handleButtonInteraction, handlePrefixCommand, handleSlashCommand } = require('./commands');
+const {
+  handleButtonInteraction,
+  handleMessageReactionAdd,
+  handlePrefixCommand,
+  handleSlashCommand
+} = require('./commands');
 const {
   handleMemberJoin,
   handleMemberLeave,
@@ -24,9 +29,16 @@ const client = new Client({ intents: [
   GatewayIntentBits.Guilds,
   GatewayIntentBits.GuildMembers,
   GatewayIntentBits.GuildMessages,
+  GatewayIntentBits.GuildMessageReactions,
   GatewayIntentBits.MessageContent,
   GatewayIntentBits.GuildVoiceStates,
-], partials: [Partials.Message, Partials.GuildMember] });
+], partials: [
+  Partials.Channel,
+  Partials.Message,
+  Partials.GuildMember,
+  Partials.Reaction,
+  Partials.User
+] });
 
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}!`);
@@ -105,6 +117,11 @@ client.on('messageDeleteBulk', async messages => {
       console.error('Unhandled bulk message delete logging error:', error);
     }
   }
+});
+
+client.on('messageReactionAdd', (reaction, user) => {
+  handleMessageReactionAdd(reaction, user)
+    .catch(error => console.error('Unhandled reaction command error:', error));
 });
 
 client.on('guildMemberAdd', member => {

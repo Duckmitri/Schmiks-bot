@@ -8,13 +8,15 @@ Schmiks-bot is a small Discord moderation bot with an optional local configurati
 
 - `!server-info` - Shows server information
 - `!links` - Presents buttons for the social links configured in `config/config.json`
+- `!kick @member <reason>` and `/kick target reason` - Moderator-only member kick commands
+- React with a configured emoji (default: `🥾`) to a message - Moderator/admin-only kick of that message's author; the message text is used as the reason
 - `!logs <general|messages|commands>` - Administrator-only viewer for general, message, and command events
 
 The prefix may differ from `!` if configured.
 
 ## Setup
 
-Requires Node.js 24 or newer and a Discord application with the Guilds, Guild Members, Guild Messages, Message Content, and Guild Voice States intents enabled. Message partial support is enabled so the bot can fetch a partial updated message when Discord makes that possible.
+Requires Node.js 24 or newer and a Discord application with the Guilds, Guild Members, Guild Messages, Guild Message Reactions, Message Content, and Guild Voice States intents enabled. Message, reaction, channel, user, and guild-member partial support is enabled so the bot can fetch reaction source data when Discord makes that possible.
 
 ```powershell
 npm ci
@@ -22,6 +24,18 @@ run-bot.bat
 ```
 
 The bot must have the matching Discord moderation permissions and its role must be above the members it moderates.
+
+## Reaction kick configuration
+
+Configure reaction commands in `config/config.json`; keys may be Unicode emoji or custom emoji IDs. Only a `kick` mapping is currently routed:
+
+```json
+"reactionCommands": {
+  "🥾": "kick"
+}
+```
+
+When an authorized moderator or administrator adds a configured reaction to a guild message, the bot attempts to DM and then kick the message author. The message text is the kick reason; an empty message uses `You have been kicked from the server, no reason provided`. The source message receives the result, including a failed-DM warning.
 
 ## Event logging
 

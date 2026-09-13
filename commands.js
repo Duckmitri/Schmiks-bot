@@ -1,4 +1,4 @@
-const { readLinks, readRoleIds } = require('./config');
+const { readLinks, readReactionCommands, readRoleIds } = require('./config');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, escapeMarkdown } = require('discord.js');
 const {
   logCommandEvent,
@@ -267,6 +267,52 @@ async function executeKick({ guild, target, reason }) {
   }
   await target.kick(reason);
   return { success: true, dmDelivered };
+}
+
+async function handleMessageReactionAdd(reaction, user) {
+  if (user.bot) return false;
+  if (reaction.partial) reaction = await reaction.fetch();
+
+  const commandName = readReactionCommands()[reaction.emoji.id ?? reaction.emoji.name];
+  if (commandName !== 'kick') return false;
+
+  let message = reaction.message;
+  if (message.partial) message = await message.fetch();
+  const guild = message.guild;
+  if (!guild || !message.author) return false;
+
+  const startedAt = Date.now();
+  const auditContext = {
+    user,
+    guild,
+    guildId: message.guildId ?? guild.id,
+    channelId: message.channelId
+  };
+
+  try {
+    const reactor = await guild.members.fetch(user.id);
+    const { moderatorRoleIds, adminRoleIds } = readRoleIds();
+    if (!memberHasAnyRole(reactor, [...moderatorRoleIds, ...adminRoleIds])) return false;
+
+    const target = await guild.members.fetch(message.author.id);
+    const reason = message.content.trim() || 'You have been kicked from the server, no reason provided';
+    const result = await executeKick({ guild, target, reason });
+    await message.reply(result.success
+      ? result.dmDelivered
+        ? 'The member was kicked.'
+        : 'The member was kicked, but their DM notification failed.'
+      : 'That member cannot be kicked.');
+    auditInteraction(auditContext, 'reaction', 'kick', startedAt, result);
+    return true;
+  } catch (error) {
+    console.error('Error in reaction kick command:', error);
+    await message.reply('An error occurred while executing the kick command.');
+    auditInteraction(auditContext, 'reaction', 'kick', startedAt, {
+      success: false,
+      errorCode: 'EXECUTION_FAILED'
+    });
+    return true;
+  }
 }
 
 // Command implementations
@@ -654,6 +700,7 @@ module.exports = {
   buildGeneralLogsView,
   executeKick,
   handleButtonInteraction,
+  handleMessageReactionAdd,
   handlePrefixCommand,
   handleSlashCommand
 };
