@@ -19,14 +19,6 @@ npm ci
 run-bot.bat
 ```
 
-Create an ignored `.env` file beside `run-bot.bat` before starting:
-
-```dotenv
-DISCORD_TOKEN=your_discord_bot_token
-```
-
-The launcher loads `.env` with Node's built-in environment-file support. Never put the token in `config/config.json` or commit `.env`.
-
 The bot must have the matching Discord moderation permissions and its role must be above the members it moderates.
 
 ## Event logging
