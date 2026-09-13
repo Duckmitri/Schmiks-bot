@@ -57,12 +57,7 @@ Configuration precedence is `BOT_PREFIX`, then `config/config.json`, then `!`. S
 
 This is the web dashboard, you can manipulate a bunch of configuartions for the bot directly.
 
-<img width="591" height="756" alt="dashboard-sc" src="https://github.com/user-attachments/assets/14b3e947-d73e-4d0c-a599-8a9118c87561" />
-
-
-The color picker supports RGB, HSL, and HEX formats for color, you can also use the provided color picker
-
-<img width="637" height="338" alt="colors-sc" src="https://github.com/user-attachments/assets/6e91ac54-a335-4f70-a55a-360a1a4855ac" />
+<img width="1847" height="927" alt="dashboard-sc" src="https://github.com/user-attachments/assets/07a57a15-63ff-4b1b-91e2-2b6277a67722" />
 
 
 ## Development workflow
