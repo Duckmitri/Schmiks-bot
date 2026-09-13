@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 
 const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'schmiks-'));
@@ -24,6 +25,7 @@ const {
 const { handleButtonInteraction, handlePrefixCommand, handleSlashCommand } = require('../commands');
 const { database } = require('../database');
 const app = require('../dashboard/server');
+const { formatHexColor, parseHexColor } = require('../dashboard/public/color');
 
 const defaultLogColors = {
   commandExecution: '#5865F2',
@@ -108,6 +110,11 @@ test('logging config validates and normalizes individual embed colors', () => {
     delivery: {},
     colors: { memberJoin: '#12345' }
   }), /color/i);
+});
+
+test('dashboard color picker converts between saved hex and RGB controls', () => {
+  assert.deepEqual(parseHexColor('#5865F2'), { red: 88, green: 101, blue: 242 });
+  assert.equal(formatHexColor({ red: 88, green: 101, blue: 242 }), '#5865F2');
 });
 
 test('logging config rejects enabled delivery without a channel ID', () => {
@@ -363,10 +370,24 @@ test('dashboard returns and saves prefix plus logging without dropping unrelated
   await new Promise(resolve => server.once('listening', resolve));
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
 
+  const duplicate = spawnSync(process.execPath, [path.join(__dirname, '..', 'dashboard', 'server.js')], {
+    encoding: 'utf8',
+    env: { ...process.env, PORT: String(server.address().port) }
+  });
+  assert.equal(duplicate.status, 1);
+  assert.match(duplicate.stderr, /already running/i);
+
   const dashboardHtml = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(dashboardHtml, /class="sidebar"/);
+  assert.match(dashboardHtml, /aria-label="Configuration sections"/);
+  assert.match(dashboardHtml, /class="settings-pane"/);
+  assert.match(dashboardHtml, /id="message"[^>]*role="status"[^>]*aria-live="polite"/);
   assert.match(dashboardHtml, /id="moderatorRoleIds"/);
   assert.match(dashboardHtml, /id="adminRoleIds"/);
-  assert.equal((dashboardHtml.match(/type="color"/g) ?? []).length, 7);
+  assert.equal((dashboardHtml.match(/type="color"/g) ?? []).length, 0);
+  assert.equal((dashboardHtml.match(/data-color-trigger=/g) ?? []).length, 7);
+  assert.equal((dashboardHtml.match(/class="color-control"/g) ?? []).length, 7);
+  assert.match(dashboardHtml, /id="colorPopover"[^>]*popover/);
   for (const key of Object.keys(defaultLogColors)) {
     assert.match(dashboardHtml, new RegExp(`data-color-key="${key}"`));
   }

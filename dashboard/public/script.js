@@ -28,16 +28,77 @@ function getLoggingFormValue() {
 
 function syncColorValue(key) {
     const input = document.querySelector(`[data-color-key="${key}"]`);
-    document.querySelector(`[data-color-value="${key}"]`).textContent = input.value.toUpperCase();
+    const value = input.value.toUpperCase();
+    document.querySelector(`[data-color-value="${key}"]`).textContent = value;
+    document.querySelector(`[data-color-trigger="${key}"] .color-swatch`)
+        .style.setProperty('--swatch', value);
 }
 
 function getRoleIds(id) {
     return document.getElementById(id).value.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
 }
 
-for (const key of deliveryKeys) {
-    document.querySelector(`[data-color-key="${key}"]`).addEventListener('input', () => syncColorValue(key));
+const colorPopover = document.getElementById('colorPopover');
+const colorHexInput = document.getElementById('colorHexInput');
+const colorChannels = Object.fromEntries([...document.querySelectorAll('[data-color-channel]')]
+    .map(input => [input.dataset.colorChannel, input]));
+let activeColorKey;
+let originalColor;
+
+function setPickerColor(value) {
+    const color = parseHexColor(value);
+    if (!color) return false;
+    const hex = formatHexColor(color);
+    colorHexInput.value = hex;
+    colorPopover.style.setProperty('--picker-color', hex);
+    for (const [channel, input] of Object.entries(colorChannels)) {
+        input.value = color[channel];
+        document.querySelector(`[data-channel-value="${channel}"]`).textContent = color[channel];
+    }
+    return true;
 }
+
+function openColorPicker(key, trigger) {
+    activeColorKey = key;
+    originalColor = document.querySelector(`[data-color-key="${key}"]`).value;
+    document.getElementById('colorPopoverTitle').textContent = trigger.closest('.setting-row')
+        .querySelector(':scope > span').textContent;
+    setPickerColor(originalColor);
+    colorPopover.showPopover();
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const pickerRect = colorPopover.getBoundingClientRect();
+    const left = Math.min(window.innerWidth - pickerRect.width - 12, Math.max(12, triggerRect.right - pickerRect.width));
+    const roomBelow = triggerRect.bottom + pickerRect.height + 8 <= window.innerHeight;
+    const top = roomBelow ? triggerRect.bottom + 8 : Math.max(12, triggerRect.top - pickerRect.height - 8);
+    colorPopover.style.left = `${left}px`;
+    colorPopover.style.top = `${top}px`;
+    colorHexInput.focus();
+    colorHexInput.select();
+}
+
+for (const key of deliveryKeys) {
+    const trigger = document.querySelector(`[data-color-trigger="${key}"]`);
+    trigger.addEventListener('click', () => openColorPicker(key, trigger));
+}
+
+for (const input of Object.values(colorChannels)) {
+    input.addEventListener('input', () => setPickerColor(formatHexColor({
+        red: colorChannels.red.value,
+        green: colorChannels.green.value,
+        blue: colorChannels.blue.value
+    })));
+}
+
+colorHexInput.addEventListener('input', () => setPickerColor(colorHexInput.value));
+document.querySelector('[data-color-reset]').addEventListener('click', () => setPickerColor(originalColor));
+document.querySelector('[data-color-close]').addEventListener('click', () => colorPopover.hidePopover());
+document.querySelector('[data-color-done]').addEventListener('click', () => {
+    if (!activeColorKey || !setPickerColor(colorHexInput.value)) return;
+    document.querySelector(`[data-color-key="${activeColorKey}"]`).value = colorHexInput.value;
+    syncColorValue(activeColorKey);
+    colorPopover.hidePopover();
+});
 
 document.getElementById('configForm').addEventListener('submit', async (e) => {
     e.preventDefault();
