@@ -354,9 +354,12 @@ const commandHandlers = {
 
   'kick': async (messageOrInteraction, argsOrOptions, isSlash) => {
     try {
-      const target = isSlash
+      const selectedTarget = isSlash
         ? messageOrInteraction.options.getMember('target')
         : messageOrInteraction.mentions.members.first();
+      const target = isSlash && selectedTarget && !('kickable' in selectedTarget)
+        ? await messageOrInteraction.guild.members.fetch(selectedTarget.id ?? selectedTarget.user?.id)
+        : selectedTarget;
       const reason = isSlash
         ? messageOrInteraction.options.getString('reason', true)
         : argsOrOptions.slice(1).join(' ').trim();

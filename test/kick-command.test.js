@@ -69,6 +69,36 @@ test('/kick resolves its target member and required reason', async () => {
   assert.match(replies[0], /kicked/i);
 });
 
+test('/kick fetches an unresolved target member before kicking', async () => {
+  const target = { id: 'uncached-member', ...makeTarget() };
+  const fetchedIds = [];
+  const replies = [];
+
+  await handleSlashCommand({
+    commandName: 'kick',
+    options: {
+      getMember: () => ({ user: { id: 'uncached-member' } }),
+      getString: () => 'repeated spam'
+    },
+    user: { id: 'moderator-user', tag: 'moderator' },
+    member: { roles: ['moderator'] },
+    guild: {
+      id: 'guild-uncached',
+      name: 'Test Guild',
+      members: { fetch: async id => {
+        fetchedIds.push(id);
+        return target;
+      } }
+    },
+    channelId: 'channel-uncached',
+    reply: async payload => replies.push(payload)
+  });
+
+  assert.deepEqual(fetchedIds, ['uncached-member']);
+  assert.equal(target.calls[1].reason, 'repeated spam');
+  assert.match(replies[0], /kicked/i);
+});
+
 test('!kick resolves the first mentioned member and preserves the remaining reason', async () => {
   const target = makeTarget();
   const replies = [];
