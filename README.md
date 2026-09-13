@@ -1,6 +1,7 @@
 # Schmiks-bot
 <img width="300" height="300" alt="download" src="https://github.com/user-attachments/assets/aa4e9ad7-0c88-4db0-92ce-f192db3b4e2e" />
 
+
 Schmiks-bot is a small Discord moderation bot with an optional local configuration dashboard.
 
 ## Commands
