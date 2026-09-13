@@ -1,6 +1,6 @@
-# Schmiks
+# Schmiks-bot
 
-Schmiks is a small Discord moderation bot with an optional local dashboard for changing its command prefix.
+Schmiks-bot is a small Discord moderation bot with an optional local dashboard for changing its command prefix.
 
 ## Commands
 
