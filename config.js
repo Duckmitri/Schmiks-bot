@@ -85,13 +85,32 @@ function readLoggingConfig() {
   return validateLoggingConfig(readConfig().logging);
 }
 
-function writeDashboardConfig({ prefix, logging }) {
+function validateRoleIds(roleIds) {
+  if (!Array.isArray(roleIds)) throw new TypeError('Role IDs must be an array');
+
+  const normalized = [...new Set(roleIds.map(roleId => typeof roleId === 'string' ? roleId.trim() : roleId))];
+  if (normalized.some(roleId => typeof roleId !== 'string' || !/^\d{17,20}$/.test(roleId))) {
+    throw new TypeError('Each role ID must contain 17 to 20 digits');
+  }
+  return normalized;
+}
+
+function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging }) {
   const saved = {
     prefix: validatePrefix(prefix),
+    moderatorRoleIds: validateRoleIds(moderatorRoleIds),
+    adminRoleIds: validateRoleIds(adminRoleIds),
     logging: validateLoggingConfig(logging)
   };
+  const persisted = {
+    ...readConfig(),
+    prefix: saved.prefix,
+    moderatorRoleId: saved.moderatorRoleIds,
+    adminRoleId: saved.adminRoleIds,
+    logging: saved.logging
+  };
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
-  fs.writeFileSync(configPath, `${JSON.stringify({ ...readConfig(), ...saved }, null, 2)}\n`);
+  fs.writeFileSync(configPath, `${JSON.stringify(persisted, null, 2)}\n`);
   return saved;
 }
 
@@ -196,6 +215,7 @@ module.exports = {
   writePrefix,
   readLoggingConfig,
   validateLoggingConfig,
+  validateRoleIds,
   writeDashboardConfig,
   readRoleIds,
   readLinks,

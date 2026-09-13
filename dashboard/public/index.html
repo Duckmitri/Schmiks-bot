@@ -15,6 +15,18 @@
                 <input type="text" id="prefix" name="prefix" placeholder="e.g., !" required>
             </div>
             <fieldset>
+                <legend>Command Roles</legend>
+                <div class="form-group">
+                    <label for="moderatorRoleIds">Moderator Role IDs</label>
+                    <textarea id="moderatorRoleIds" name="moderatorRoleIds" rows="3" placeholder="One Discord role ID per line"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="adminRoleIds">Administrator Role IDs</label>
+                    <textarea id="adminRoleIds" name="adminRoleIds" rows="3" placeholder="One Discord role ID per line"></textarea>
+                </div>
+                <p class="field-help">Administrator roles can also use moderator commands.</p>
+            </fieldset>
+            <fieldset>
                 <legend>Logging</legend>
                 <div class="form-group">
                     <label for="loggingChannelId">Shared Log Channel ID</label>

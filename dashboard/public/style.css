@@ -29,12 +29,17 @@ h1 {
     font-weight: bold;
 }
 
-.form-group input {
+.form-group input,
+.form-group textarea {
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
     box-sizing: border-box;
+}
+
+.form-group textarea {
+    resize: vertical;
 }
 
 fieldset {

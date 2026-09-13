@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { readLoggingConfig, readPrefix, writeDashboardConfig } = require('../config');
+const { readLoggingConfig, readPrefix, readRoleIds, writeDashboardConfig } = require('../config');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,7 +12,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // API to get config
 app.get('/api/config', (req, res) => {
   try {
-    res.json({ prefix: readPrefix(), logging: readLoggingConfig() });
+    res.json({ prefix: readPrefix(), ...readRoleIds(), logging: readLoggingConfig() });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Could not read config' });

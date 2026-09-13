@@ -31,6 +31,10 @@ function syncColorValue(key) {
     document.querySelector(`[data-color-value="${key}"]`).textContent = input.value.toUpperCase();
 }
 
+function getRoleIds(id) {
+    return document.getElementById(id).value.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+}
+
 for (const key of deliveryKeys) {
     document.querySelector(`[data-color-key="${key}"]`).addEventListener('input', () => syncColorValue(key));
 }
@@ -39,6 +43,8 @@ document.getElementById('configForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const prefix = document.getElementById('prefix').value;
+    const moderatorRoleIds = getRoleIds('moderatorRoleIds');
+    const adminRoleIds = getRoleIds('adminRoleIds');
     const logging = getLoggingFormValue();
 
     const messageDiv = document.getElementById('message');
@@ -50,7 +56,7 @@ document.getElementById('configForm').addEventListener('submit', async (e) => {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ prefix, logging })
+            body: JSON.stringify({ prefix, moderatorRoleIds, adminRoleIds, logging })
         });
 
         const data = await response.json();
@@ -77,6 +83,8 @@ async function loadConfig() {
         if (response.ok) {
             const config = await response.json();
             document.getElementById('prefix').value = config.prefix || '';
+            document.getElementById('moderatorRoleIds').value = config.moderatorRoleIds.join('\n');
+            document.getElementById('adminRoleIds').value = config.adminRoleIds.join('\n');
             document.getElementById('loggingChannelId').value = config.logging.channelId;
             document.getElementById('retentionDays').value = config.logging.retentionDays;
             for (const key of deliveryKeys) {

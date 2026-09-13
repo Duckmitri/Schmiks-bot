@@ -17,6 +17,7 @@ const {
   readSlashCommands,
   validateLoggingConfig,
   validatePrefix,
+  validateRoleIds,
   writeDashboardConfig,
   writePrefix
 } = require('../config');
@@ -129,6 +130,8 @@ test('dashboard config round-trips logging and preserves unrelated keys', () => 
 
   const saved = writeDashboardConfig({
     prefix: '$',
+    moderatorRoleIds: ['12345678901234567'],
+    adminRoleIds: ['987654321098765432'],
     logging: {
       channelId: '12345678901234567890',
       retentionDays: 30,
@@ -139,6 +142,8 @@ test('dashboard config round-trips logging and preserves unrelated keys', () => 
 
   assert.deepEqual(saved, {
     prefix: '$',
+    moderatorRoleIds: ['12345678901234567'],
+    adminRoleIds: ['987654321098765432'],
     logging: {
       channelId: '12345678901234567890',
       retentionDays: 30,
@@ -160,13 +165,22 @@ test('dashboard config round-trips logging and preserves unrelated keys', () => 
   });
   assert.deepEqual(JSON.parse(fs.readFileSync(process.env.CONFIG_PATH, 'utf8')), {
     prefix: '$',
-    moderatorRoleId: ['moderator'],
-    adminRoleId: ['admin'],
+    moderatorRoleId: ['12345678901234567'],
+    adminRoleId: ['987654321098765432'],
     slashCommands: [{ name: 'links', description: 'Show links' }],
     links: [{ name: 'YouTube', url: 'https://youtube.example' }],
     futureSetting: { keep: true },
     logging: saved.logging
   });
+});
+
+test('dashboard role IDs normalize, deduplicate, and reject invalid IDs', () => {
+  assert.deepEqual(validateRoleIds([' 12345678901234567 ', '12345678901234567', '987654321098765432']), [
+    '12345678901234567',
+    '987654321098765432'
+  ]);
+  assert.deepEqual(validateRoleIds([]), []);
+  assert.throws(() => validateRoleIds(['not-a-role']), /role ID/i);
 });
 
 test('prefix config validates and round-trips', () => {
@@ -350,6 +364,8 @@ test('dashboard returns and saves prefix plus logging without dropping unrelated
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
 
   const dashboardHtml = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(dashboardHtml, /id="moderatorRoleIds"/);
+  assert.match(dashboardHtml, /id="adminRoleIds"/);
   assert.equal((dashboardHtml.match(/type="color"/g) ?? []).length, 7);
   for (const key of Object.keys(defaultLogColors)) {
     assert.match(dashboardHtml, new RegExp(`data-color-key="${key}"`));
@@ -357,7 +373,8 @@ test('dashboard returns and saves prefix plus logging without dropping unrelated
 
   fs.writeFileSync(process.env.CONFIG_PATH, JSON.stringify({
     prefix: '!',
-    adminRoleId: ['admin'],
+    moderatorRoleId: ['12345678901234567'],
+    adminRoleId: ['987654321098765432'],
     links: [{ name: 'YouTube', url: 'https://youtube.example' }],
     futureSetting: 'keep-me'
   }));
@@ -367,6 +384,8 @@ test('dashboard returns and saves prefix plus logging without dropping unrelated
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       prefix: '$',
+      moderatorRoleIds: ['12345678901234567', '12345678901234567'],
+      adminRoleIds: ['987654321098765432'],
       logging: {
         channelId: '12345678901234567',
         retentionDays: 120,
@@ -380,6 +399,8 @@ test('dashboard returns and saves prefix plus logging without dropping unrelated
   assert.deepEqual(await update.json(), {
     success: true,
     prefix: '$',
+    moderatorRoleIds: ['12345678901234567'],
+    adminRoleIds: ['987654321098765432'],
     logging: {
       channelId: '12345678901234567',
       retentionDays: 120,
@@ -401,7 +422,8 @@ test('dashboard returns and saves prefix plus logging without dropping unrelated
   });
   assert.deepEqual(JSON.parse(fs.readFileSync(process.env.CONFIG_PATH, 'utf8')), {
     prefix: '$',
-    adminRoleId: ['admin'],
+    moderatorRoleId: ['12345678901234567'],
+    adminRoleId: ['987654321098765432'],
     links: [{ name: 'YouTube', url: 'https://youtube.example' }],
     futureSetting: 'keep-me',
     logging: {
@@ -437,6 +459,8 @@ test('dashboard returns and saves prefix plus logging without dropping unrelated
   const current = await fetch(`${baseUrl}/api/config`);
   assert.deepEqual(await current.json(), {
     prefix: '$',
+    moderatorRoleIds: ['12345678901234567'],
+    adminRoleIds: ['987654321098765432'],
     logging: {
       channelId: '12345678901234567',
       retentionDays: 120,
@@ -463,6 +487,8 @@ test('dashboard returns and saves prefix plus logging without dropping unrelated
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       prefix: '?',
+      moderatorRoleIds: [],
+      adminRoleIds: ['987654321098765432'],
       logging: {
         channelId: '123456789012345678',
         retentionDays: 365,
