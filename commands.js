@@ -256,7 +256,7 @@ function logCategoryLabel(category) {
   return category === 'commands' ? 'command' : category === 'messages' ? 'message' : 'general';
 }
 
-async function executeKick({ guild, target, reason }) {
+async function executeKick({ guild, target, moderator, reason }) {
   if (!target?.kickable) return { success: false, errorCode: 'TARGET_NOT_KICKABLE' };
 
   const boundedReason = String(reason).slice(0, 512);
@@ -271,6 +271,13 @@ async function executeKick({ guild, target, reason }) {
     dmDelivered = false;
   }
   await target.kick(boundedReason);
+  logInfraction({
+    guildId: guild.id,
+    targetUserId: target.id,
+    moderatorUserId: moderator.id,
+    type: 'kick',
+    reason: boundedReason
+  });
   return { success: true, dmDelivered };
 }
 
@@ -336,7 +343,7 @@ async function handleMessageReactionAdd(reaction, user) {
 
     const target = await guild.members.fetch(message.author.id);
     const reason = message.content.trim() || 'You have been kicked from the server, no reason provided';
-    const result = await executeKick({ guild, target, reason });
+    const result = await executeKick({ guild, target, moderator: reactor.user, reason });
     auditInteraction(auditContext, 'reaction', 'kick', startedAt, result);
     try {
       await message.reply(result.success
@@ -466,7 +473,12 @@ const commandHandlers = {
         return { success: false, errorCode: 'INVALID_OPTION' };
       }
 
-      const result = await executeKick({ guild: messageOrInteraction.guild, target, reason });
+      const result = await executeKick({
+        guild: messageOrInteraction.guild,
+        target,
+        moderator: messageOrInteraction.user ?? messageOrInteraction.author,
+        reason
+      });
       const reply = result.success
         ? result.dmDelivered
           ? 'The member was kicked.'
