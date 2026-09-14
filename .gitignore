@@ -5,7 +5,7 @@ node_modules/
 docs/
 config/config.json
 .env
-handoff.MD
+HANDOFF.md
 .DS_Store
 npm-debug.log*
 data/*.db
