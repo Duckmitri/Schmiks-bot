@@ -10,7 +10,7 @@ process.env.DATABASE_PATH = path.join(directory, 'test.db');
 
 const { readSlashCommands } = require('../config');
 const { database, readInfractionsPage } = require('../database');
-const { executeWarn, renderWarningTemplate } = require('../commands');
+const { executeWarn, handleSlashCommand, renderWarningTemplate } = require('../commands');
 
 test.after(() => {
   database.close();
@@ -66,6 +66,59 @@ test('records a warning when its DM fails', async () => {
   });
   assert.deepEqual(result, { success: true, dmDelivered: false });
   assert.equal(readInfractionsPage('guild', 'target').infractions[0].type, 'warn');
+});
+
+test('does not record a warning when embed configuration is invalid', async () => {
+  fs.writeFileSync(process.env.CONFIG_PATH, JSON.stringify({
+    warningEmbed: { color: 'yellow', title: 'Warning', message: '{reason}' }
+  }));
+  const target = { id: 'invalid-config-target', send: async () => assert.fail('DM should not be attempted') };
+
+  await assert.rejects(executeWarn({
+    guild: { id: 'guild', name: 'Guild' },
+    target,
+    moderator: { id: 'mod', tag: 'Moderator' },
+    reason: 'Spam'
+  }), /#RRGGBB/);
+
+  assert.equal(readInfractionsPage('guild', target.id).total, 0);
+});
+
+test('replies ephemerally to invalid slash warn usage', async () => {
+  fs.writeFileSync(process.env.CONFIG_PATH, JSON.stringify({ moderatorRoleId: ['12345678901234567'] }));
+  let reply;
+  await handleSlashCommand({
+    commandName: 'warn', guildId: 'guild', channelId: 'channel',
+    guild: { id: 'guild' }, user: { id: 'mod' }, member: { roles: ['12345678901234567'] },
+    options: { getMember: () => null, getString: () => 'Spam' },
+    reply: async payload => { reply = payload; }
+  });
+
+  assert.deepEqual(reply, { content: 'Usage: /warn @member <reason>', ephemeral: true });
+});
+
+test('replies ephemerally when slash warn execution fails', async () => {
+  fs.writeFileSync(process.env.CONFIG_PATH, JSON.stringify({
+    moderatorRoleId: ['12345678901234567'],
+    warningEmbed: { color: 'yellow', title: 'Warning', message: '{reason}' }
+  }));
+  let reply;
+  await handleSlashCommand({
+    commandName: 'warn', guildId: 'guild', channelId: 'channel',
+    guild: { id: 'guild', name: 'Guild' }, user: { id: 'mod', tag: 'Moderator' },
+    member: { roles: ['12345678901234567'] },
+    options: {
+      getMember: () => ({ id: 'slash-error-target', send: async () => assert.fail('DM should not be attempted') }),
+      getString: () => 'Spam'
+    },
+    reply: async payload => { reply = payload; }
+  });
+
+  assert.deepEqual(reply, {
+    content: 'An error occurred while executing the warn command.',
+    ephemeral: true
+  });
+  assert.equal(readInfractionsPage('guild', 'slash-error-target').total, 0);
 });
 
 test('registers warn with required target and reason options', () => {

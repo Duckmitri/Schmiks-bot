@@ -99,7 +99,7 @@ test('dashboard API round-trips warning embed settings', async () => {
 
 test('dashboard contains the infractions warning controls', () => {
   const html = fs.readFileSync(path.join(root, 'dashboard', 'public', 'index.html'), 'utf8');
-  for (const value of ['href="#infractions"', 'id="infractions"', 'warningColor', 'warningTitle', 'warningMessage']) {
+  for (const value of ['href="#infractions"', 'id="infractions"', 'aria-label="Change warning color"', 'warningColor', 'warningTitle', 'warningMessage']) {
     assert.match(html, new RegExp(value));
   }
 });

@@ -323,6 +323,13 @@ async function executeWarn({ guild, target, moderator, reason }) {
   if (typeof reason !== 'string' || !reason.trim()) throw new TypeError('reason is required');
 
   const boundedReason = reason.trim().slice(0, 512);
+  const config = readWarningEmbedConfig();
+  const values = { server: guild.name, reason: boundedReason, moderator: moderator.tag };
+  const embed = new EmbedBuilder()
+    .setColor(config.color)
+    .setTitle(renderWarningTemplate(config.title, values).slice(0, 256))
+    .setDescription(renderWarningTemplate(config.message, values).slice(0, 4096));
+
   logInfraction({
     guildId: guild.id,
     targetUserId: target.id,
@@ -331,12 +338,6 @@ async function executeWarn({ guild, target, moderator, reason }) {
     reason: boundedReason
   });
 
-  const config = readWarningEmbedConfig();
-  const values = { server: guild.name, reason: boundedReason, moderator: moderator.tag };
-  const embed = new EmbedBuilder()
-    .setColor(config.color)
-    .setTitle(renderWarningTemplate(config.title, values).slice(0, 256))
-    .setDescription(renderWarningTemplate(config.message, values).slice(0, 4096));
   try {
     await target.send({ embeds: [embed] });
     return { success: true, dmDelivered: true };
@@ -542,7 +543,9 @@ const commandHandlers = {
         const invokedCommand = isSlash
           ? '/warn'
           : messageOrInteraction.content.trim().split(/\s+/)[0];
-        await messageOrInteraction.reply(`Usage: ${invokedCommand} @member <reason>`);
+        const reply = { content: `Usage: ${invokedCommand} @member <reason>` };
+        if (isSlash) reply.ephemeral = true;
+        await messageOrInteraction.reply(reply);
         return { success: false, errorCode: 'INVALID_OPTION' };
       }
 
@@ -554,7 +557,9 @@ const commandHandlers = {
       return result;
     } catch (error) {
       console.error('Error in warn command:', error);
-      await messageOrInteraction.reply({ content: 'An error occurred while executing the warn command.' });
+      const reply = { content: 'An error occurred while executing the warn command.' };
+      if (isSlash) reply.ephemeral = true;
+      await messageOrInteraction.reply(reply);
       return { success: false, errorCode: 'EXECUTION_FAILED' };
     }
   },
