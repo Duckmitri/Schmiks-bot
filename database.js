@@ -89,6 +89,18 @@ database.exec(`
     ON general_events (guild_id, occurred_at, id);
   CREATE INDEX IF NOT EXISTS general_events_occurred_at_idx
     ON general_events (occurred_at);
+
+  CREATE TABLE IF NOT EXISTS infractions (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    occurred_at       TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    guild_id          TEXT NOT NULL,
+    target_user_id    TEXT NOT NULL,
+    moderator_user_id TEXT NOT NULL,
+    type              TEXT NOT NULL CHECK (type IN ('warn', 'kick')),
+    reason            TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS infractions_guild_target_idx
+    ON infractions (guild_id, target_user_id, occurred_at, id);
 `);
 
 // Keep ID history across retention without rebuilding existing tables and their constraints.
@@ -187,6 +199,57 @@ function toTimestamp(value) {
 
 function toJsonArray(value) {
   return JSON.stringify(value ?? []);
+}
+
+const insertInfraction = database.prepare(`
+  INSERT INTO infractions (
+    occurred_at, guild_id, target_user_id, moderator_user_id, type, reason
+  ) VALUES (
+    @occurredAt, @guildId, @targetUserId, @moderatorUserId, @type, @reason
+  )
+`);
+
+function logInfraction(infraction) {
+  if (!['warn', 'kick'].includes(infraction.type)) {
+    throw new TypeError("type must be 'warn' or 'kick'");
+  }
+  if (typeof infraction.reason !== 'string' || !infraction.reason.trim()) {
+    throw new TypeError('reason must be a nonblank string');
+  }
+
+  insertInfraction.run({
+    occurredAt: toTimestamp(infraction.occurredAt),
+    guildId: infraction.guildId,
+    targetUserId: infraction.targetUserId,
+    moderatorUserId: infraction.moderatorUserId,
+    type: infraction.type,
+    reason: infraction.reason.trim().slice(0, 512)
+  });
+}
+
+function readInfractionsPage(guildId, targetUserId, requestedPage = 0, pageSize = 10, requestedThroughId) {
+  const throughId = requestedThroughId ?? database.prepare(`
+    SELECT COALESCE(MAX(id), 0) AS id
+    FROM infractions
+    WHERE guild_id = ? AND target_user_id = ?
+  `).get(guildId, targetUserId).id;
+  const total = database.prepare(`
+    SELECT COUNT(*) AS count
+    FROM infractions
+    WHERE guild_id = ? AND target_user_id = ? AND id <= ?
+  `).get(guildId, targetUserId, throughId).count;
+  const normalizedPageSize = Number.isInteger(pageSize) && pageSize > 0 ? pageSize : 10;
+  const pageCount = Math.max(1, Math.ceil(total / normalizedPageSize));
+  const page = Math.min(Math.max(0, Number.isInteger(requestedPage) ? requestedPage : 0), pageCount - 1);
+  const infractions = database.prepare(`
+    SELECT id, occurred_at, guild_id, target_user_id, moderator_user_id, type, reason
+    FROM infractions
+    WHERE guild_id = ? AND target_user_id = ? AND id <= ?
+    ORDER BY occurred_at DESC, id DESC
+    LIMIT ? OFFSET ?
+  `).all(guildId, targetUserId, throughId, normalizedPageSize, page * normalizedPageSize);
+
+  return { infractions, total, page, pageCount, throughId };
 }
 
 const upsertSnapshot = database.prepare(`
@@ -356,6 +419,8 @@ function purgeExpiredEvents(retentionDays, now = new Date()) {
 
 module.exports = {
   database,
+  logInfraction,
+  readInfractionsPage,
   logCommandEvent,
   readCommandEventsPage,
   upsertMessageSnapshot,
