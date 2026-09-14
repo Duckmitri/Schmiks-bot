@@ -1,7 +1,9 @@
-const { readLinks, readReactionCommands, readRoleIds } = require('./config');
+const { readLinks, readReactionCommands, readRoleIds, readWarningEmbedConfig } = require('./config');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, escapeMarkdown } = require('discord.js');
 const {
   logCommandEvent,
+  logInfraction,
+  readInfractionsPage,
   readCommandEventsPage,
   readMessageEventsPage,
   readGeneralEventsPage
@@ -10,7 +12,7 @@ const { deliverLogEvent } = require('./event-logging');
 
 // Define command sets
 const publicCommands = ['links'];
-const moderatorCommands = ['server-info', 'kick'];
+const moderatorCommands = ['server-info', 'kick', 'warn'];
 const adminCommands = ['logs'];
 const linkPlatforms = ['YouTube', 'Twitch', 'TikTok', 'Instagram'];
 const logsPageSize = 10;
@@ -272,6 +274,40 @@ async function executeKick({ guild, target, reason }) {
   return { success: true, dmDelivered };
 }
 
+function renderWarningTemplate(template, { server, reason, moderator }) {
+  return String(template)
+    .replaceAll('{server}', server)
+    .replaceAll('{reason}', reason)
+    .replaceAll('{moderator}', moderator);
+}
+
+async function executeWarn({ guild, target, moderator, reason }) {
+  if (!target?.id) throw new TypeError('target is required');
+  if (typeof reason !== 'string' || !reason.trim()) throw new TypeError('reason is required');
+
+  const boundedReason = reason.trim().slice(0, 512);
+  logInfraction({
+    guildId: guild.id,
+    targetUserId: target.id,
+    moderatorUserId: moderator.id,
+    type: 'warn',
+    reason: boundedReason
+  });
+
+  const config = readWarningEmbedConfig();
+  const values = { server: guild.name, reason: boundedReason, moderator: moderator.tag };
+  const embed = new EmbedBuilder()
+    .setColor(config.color)
+    .setTitle(renderWarningTemplate(config.title, values).slice(0, 256))
+    .setDescription(renderWarningTemplate(config.message, values).slice(0, 4096));
+  try {
+    await target.send({ embeds: [embed] });
+    return { success: true, dmDelivered: true };
+  } catch {
+    return { success: true, dmDelivered: false };
+  }
+}
+
 async function handleMessageReactionAdd(reaction, user) {
   if (user.bot) return false;
   if (reaction.partial) reaction = await reaction.fetch();
@@ -447,6 +483,36 @@ const commandHandlers = {
       const errorReply = { content: 'An error occurred while executing the kick command.' };
       if (isSlash) errorReply.ephemeral = true;
       await messageOrInteraction.reply(errorReply);
+      return { success: false, errorCode: 'EXECUTION_FAILED' };
+    }
+  },
+
+  'warn': async (messageOrInteraction, argsOrOptions, isSlash) => {
+    try {
+      const target = isSlash
+        ? messageOrInteraction.options.getMember('target')
+        : messageOrInteraction.mentions.members.first();
+      const reason = isSlash
+        ? messageOrInteraction.options.getString('reason', true)
+        : argsOrOptions.slice(1).join(' ').trim();
+
+      if (!target || !reason) {
+        const invokedCommand = isSlash
+          ? '/warn'
+          : messageOrInteraction.content.trim().split(/\s+/)[0];
+        await messageOrInteraction.reply(`Usage: ${invokedCommand} @member <reason>`);
+        return { success: false, errorCode: 'INVALID_OPTION' };
+      }
+
+      const moderator = isSlash ? messageOrInteraction.user : messageOrInteraction.author;
+      const result = await executeWarn({ guild: messageOrInteraction.guild, target, moderator, reason });
+      await messageOrInteraction.reply(result.dmDelivered
+        ? 'The member was warned.'
+        : 'The warning was recorded, but their DM notification failed.');
+      return result;
+    } catch (error) {
+      console.error('Error in warn command:', error);
+      await messageOrInteraction.reply({ content: 'An error occurred while executing the warn command.' });
       return { success: false, errorCode: 'EXECUTION_FAILED' };
     }
   },
@@ -723,8 +789,10 @@ module.exports = {
   buildMessageLogsView,
   buildGeneralLogsView,
   executeKick,
+  executeWarn,
   handleButtonInteraction,
   handleMessageReactionAdd,
   handlePrefixCommand,
-  handleSlashCommand
+  handleSlashCommand,
+  renderWarningTemplate
 };

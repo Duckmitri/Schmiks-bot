@@ -244,9 +244,22 @@ function addBuiltInSlashCommands(commands) {
         { name: 'commands', value: 'commands' }
       ));
 
+  const warnCommand = new SlashCommandBuilder()
+    .setName('warn')
+    .setDescription('Warn a member')
+    .addUserOption(option => option
+      .setName('target')
+      .setDescription('Member to warn')
+      .setRequired(true))
+    .addStringOption(option => option
+      .setName('reason')
+      .setDescription('Reason for warning')
+      .setRequired(true));
+
   return [
-    ...commands.filter(command => command.name !== 'logs' && command.name !== 'kick'),
+    ...commands.filter(command => !['logs', 'kick', 'warn'].includes(command.name)),
     kickCommand.toJSON(),
+    warnCommand.toJSON(),
     logsCommand.toJSON()
   ];
 }
