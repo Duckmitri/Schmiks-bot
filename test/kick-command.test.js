@@ -45,6 +45,14 @@ function makeReaction({ emoji = { name: '🥾' }, message, partial = false, fetc
   return { emoji, message, partial, fetch };
 }
 
+const longReason = 'x'.repeat(600);
+const boundedLongReason = 'x'.repeat(512);
+
+function assertBoundedKickReason(target) {
+  assert.equal(target.calls[0].payload.embeds[0].toJSON().description, boundedLongReason);
+  assert.equal(target.calls[1].reason, boundedLongReason);
+}
+
 test.after(() => {
   if (database.open) database.close();
   fs.rmSync(temporaryDirectory, { recursive: true, force: true });
@@ -109,6 +117,50 @@ test('/kick fetches an unresolved target member before kicking', async () => {
   assert.match(replies[0], /kicked/i);
 });
 
+test('/kick audits success when its confirmation reply fails', async t => {
+  const target = makeTarget();
+  t.mock.method(console, 'error', () => {});
+
+  await handleSlashCommand({
+    commandName: 'kick',
+    options: {
+      getMember: () => target,
+      getString: () => 'repeated spam'
+    },
+    user: { id: 'slash-reply-user', tag: 'moderator' },
+    member: { roles: ['moderator'] },
+    guild: { id: 'guild-slash-reply', name: 'Test Guild' },
+    channelId: 'channel-slash-reply',
+    reply: async () => { throw new Error('confirmation unavailable'); }
+  });
+
+  assert.equal(target.calls[1].reason, 'repeated spam');
+  assert.deepEqual(database.prepare(`
+    SELECT interaction_type, success, error_code
+    FROM command_events
+    WHERE guild_id = 'guild-slash-reply'
+  `).all(), [{ interaction_type: 'slash', success: 1, error_code: null }]);
+});
+
+test('/kick bounds the DM and Discord audit reason to 512 characters', async () => {
+  const target = makeTarget();
+
+  await handleSlashCommand({
+    commandName: 'kick',
+    options: {
+      getMember: () => target,
+      getString: () => longReason
+    },
+    user: { id: 'slash-long-user', tag: 'moderator' },
+    member: { roles: ['moderator'] },
+    guild: { id: 'guild-slash-long', name: 'Test Guild' },
+    channelId: 'channel-slash-long',
+    reply: async () => {}
+  });
+
+  assertBoundedKickReason(target);
+});
+
 test('!kick resolves the first mentioned member and preserves the remaining reason', async () => {
   const target = makeTarget();
   const replies = [];
@@ -125,6 +177,44 @@ test('!kick resolves the first mentioned member and preserves the remaining reas
 
   assert.equal(target.calls[1].reason, 'repeated spam');
   assert.match(replies[0], /kicked/i);
+});
+
+test('!kick audits success when its confirmation reply fails', async t => {
+  const target = makeTarget();
+  t.mock.method(console, 'error', () => {});
+
+  await handlePrefixCommand({
+    content: '!kick @target repeated spam',
+    mentions: { members: { first: () => target } },
+    author: { id: 'prefix-reply-user', tag: 'moderator' },
+    member: { roles: { cache: { has: id => id === 'moderator' } } },
+    guild: { id: 'guild-prefix-reply', name: 'Test Guild' },
+    channelId: 'channel-prefix-reply',
+    reply: async () => { throw new Error('confirmation unavailable'); }
+  }, '!');
+
+  assert.equal(target.calls[1].reason, 'repeated spam');
+  assert.deepEqual(database.prepare(`
+    SELECT interaction_type, success, error_code
+    FROM command_events
+    WHERE guild_id = 'guild-prefix-reply'
+  `).all(), [{ interaction_type: 'prefix', success: 1, error_code: null }]);
+});
+
+test('!kick bounds the DM and Discord audit reason to 512 characters', async () => {
+  const target = makeTarget();
+
+  await handlePrefixCommand({
+    content: `!kick @target ${longReason}`,
+    mentions: { members: { first: () => target } },
+    author: { id: 'prefix-long-user', tag: 'moderator' },
+    member: { roles: { cache: { has: id => id === 'moderator' } } },
+    guild: { id: 'guild-prefix-long', name: 'Test Guild' },
+    channelId: 'channel-prefix-long',
+    reply: async () => {}
+  }, '!');
+
+  assertBoundedKickReason(target);
 });
 
 test('!kick rejects a missing reason without contacting the target', async () => {
@@ -224,7 +314,7 @@ test('a moderator reaction kicks the message author using the message body as it
       fetch: async id => {
         memberFetches.push(id);
         return id === 'moderator-user'
-          ? { roles: { cache: { has: roleId => roleId === 'moderator' } } }
+          ? { user: { bot: false }, roles: { cache: { has: roleId => roleId === 'moderator' } } }
           : target;
       }
     }
@@ -267,7 +357,7 @@ test('a source reply failure does not change a completed reaction kick audit', a
     name: 'Test Guild',
     members: {
       fetch: async id => id === 'moderator-user'
-        ? { roles: { cache: { has: roleId => roleId === 'moderator' } } }
+        ? { user: { bot: false }, roles: { cache: { has: roleId => roleId === 'moderator' } } }
         : target
     }
   };
@@ -305,7 +395,7 @@ test('a reaction to an empty message uses the documented fallback reason', async
     name: 'Test Guild',
     members: {
       fetch: async id => id === 'moderator-user'
-        ? { roles: { cache: { has: roleId => roleId === 'moderator' } } }
+        ? { user: { bot: false }, roles: { cache: { has: roleId => roleId === 'moderator' } } }
         : target
     }
   };
@@ -324,6 +414,32 @@ test('a reaction to an empty message uses the documented fallback reason', async
   assert.equal(target.calls[1].reason, 'You have been kicked from the server, no reason provided');
 });
 
+test('a reaction bounds the DM and Discord audit reason to 512 characters', async () => {
+  const target = { id: 'target-user', ...makeTarget() };
+  const guild = {
+    id: 'guild-reaction-long',
+    name: 'Test Guild',
+    members: {
+      fetch: async id => id === 'moderator-user'
+        ? { user: { bot: false }, roles: { cache: { has: roleId => roleId === 'moderator' } } }
+        : target
+    }
+  };
+
+  await handleMessageReactionAdd(makeReaction({
+    message: {
+      guild,
+      guildId: guild.id,
+      channelId: 'channel-reaction-long',
+      author: { id: target.id },
+      content: longReason,
+      reply: async () => {}
+    }
+  }), { id: 'moderator-user', bot: false });
+
+  assertBoundedKickReason(target);
+});
+
 test('a bot reaction does not perform a kick', async () => {
   const handled = await handleMessageReactionAdd(makeReaction({
     message: {
@@ -336,6 +452,38 @@ test('a bot reaction does not perform a kick', async () => {
   assert.equal(handled, false);
 });
 
+test('a partial bot user cannot kick after its guild member is fetched', async () => {
+  const target = { id: 'target-user', ...makeTarget() };
+  const memberFetches = [];
+  const guild = {
+    id: 'guild-partial-bot',
+    name: 'Test Guild',
+    members: {
+      fetch: async id => {
+        memberFetches.push(id);
+        return id === 'partial-bot-user'
+          ? { user: { bot: true }, roles: { cache: { has: roleId => roleId === 'moderator' } } }
+          : target;
+      }
+    }
+  };
+
+  const handled = await handleMessageReactionAdd(makeReaction({
+    message: {
+      guild,
+      guildId: guild.id,
+      channelId: 'channel-partial-bot',
+      author: { id: target.id },
+      content: 'repeated spam',
+      reply: async () => {}
+    }
+  }), { id: 'partial-bot-user', bot: null });
+
+  assert.equal(handled, false);
+  assert.deepEqual(memberFetches, ['partial-bot-user']);
+  assert.deepEqual(target.calls, []);
+});
+
 test('an unauthorized reaction does not perform a kick', async () => {
   const target = { id: 'target-user', ...makeTarget() };
   const guild = {
@@ -343,7 +491,7 @@ test('an unauthorized reaction does not perform a kick', async () => {
     name: 'Test Guild',
     members: {
       fetch: async id => id === 'moderator-user'
-        ? { roles: { cache: { has: () => false } } }
+        ? { user: { bot: false }, roles: { cache: { has: () => false } } }
         : target
     }
   };
@@ -383,7 +531,7 @@ test('a configured custom emoji ID routes the reaction command', async () => {
     name: 'Test Guild',
     members: {
       fetch: async id => id === 'moderator-user'
-        ? { roles: { cache: { has: roleId => roleId === 'moderator' } } }
+        ? { user: { bot: false }, roles: { cache: { has: roleId => roleId === 'moderator' } } }
         : target
     }
   };
@@ -417,7 +565,7 @@ test('a reaction fetches partial reaction and message data before routing', asyn
     name: 'Test Guild',
     members: {
       fetch: async id => id === 'moderator-user'
-        ? { roles: { cache: { has: roleId => roleId === 'moderator' } } }
+        ? { user: { bot: false }, roles: { cache: { has: roleId => roleId === 'moderator' } } }
         : target
     }
   };

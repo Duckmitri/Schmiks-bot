@@ -255,17 +255,18 @@ function logCategoryLabel(category) {
 async function executeKick({ guild, target, reason }) {
   if (!target?.kickable) return { success: false, errorCode: 'TARGET_NOT_KICKABLE' };
 
+  const boundedReason = String(reason).slice(0, 512);
   const embed = new EmbedBuilder()
     .setColor(0xED4245)
     .setTitle(`You have been kicked from ${guild.name}`)
-    .setDescription(reason);
+    .setDescription(boundedReason);
   let dmDelivered = true;
   try {
     await target.send({ embeds: [embed] });
   } catch {
     dmDelivered = false;
   }
-  await target.kick(reason);
+  await target.kick(boundedReason);
   return { success: true, dmDelivered };
 }
 
@@ -291,6 +292,7 @@ async function handleMessageReactionAdd(reaction, user) {
 
   try {
     const reactor = await guild.members.fetch(user.id);
+    if (reactor.user.bot) return false;
     const { moderatorRoleIds, adminRoleIds } = readRoleIds();
     if (!memberHasAnyRole(reactor, [...moderatorRoleIds, ...adminRoleIds])) return false;
 
@@ -427,14 +429,16 @@ const commandHandlers = {
       }
 
       const result = await executeKick({ guild: messageOrInteraction.guild, target, reason });
-      if (!result.success) {
-        await messageOrInteraction.reply('That member cannot be kicked.');
-        return result;
+      const reply = result.success
+        ? result.dmDelivered
+          ? 'The member was kicked.'
+          : 'The member was kicked, but their DM notification failed.'
+        : 'That member cannot be kicked.';
+      try {
+        await messageOrInteraction.reply(reply);
+      } catch (error) {
+        console.error('Could not reply to kick command:', error);
       }
-
-      await messageOrInteraction.reply(result.dmDelivered
-        ? 'The member was kicked.'
-        : 'The member was kicked, but their DM notification failed.');
       return result;
     } catch (error) {
       console.error('Error in kick command:', error);
