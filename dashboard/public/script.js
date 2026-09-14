@@ -7,6 +7,7 @@ const deliveryKeys = [
     'voiceJoin',
     'voiceLeave'
 ];
+const colorKeys = [...deliveryKeys, 'warning'];
 
 function getLoggingFormValue() {
     const delivery = Object.fromEntries(deliveryKeys.map(key => [
@@ -23,6 +24,14 @@ function getLoggingFormValue() {
         retentionDays: Number(document.getElementById('retentionDays').value),
         colors,
         delivery
+    };
+}
+
+function getWarningEmbedFormValue() {
+    return {
+        color: document.getElementById('warningColor').value.toUpperCase(),
+        title: document.getElementById('warningTitle').value,
+        message: document.getElementById('warningMessage').value
     };
 }
 
@@ -80,7 +89,7 @@ function openColorPicker(key, trigger) {
     colorHexInput.select();
 }
 
-for (const key of deliveryKeys) {
+for (const key of colorKeys) {
     const trigger = document.querySelector(`[data-color-trigger="${key}"]`);
     trigger.addEventListener('click', () => openColorPicker(key, trigger));
 }
@@ -117,6 +126,7 @@ document.getElementById('configForm').addEventListener('submit', async (e) => {
     const moderatorRoleIds = getRoleIds('moderatorRoleIds');
     const adminRoleIds = getRoleIds('adminRoleIds');
     const logging = getLoggingFormValue();
+    const warningEmbed = getWarningEmbedFormValue();
 
     const messageDiv = document.getElementById('message');
     messageDiv.style.display = 'none';
@@ -127,7 +137,7 @@ document.getElementById('configForm').addEventListener('submit', async (e) => {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ prefix, moderatorRoleIds, adminRoleIds, logging })
+            body: JSON.stringify({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed })
         });
 
         const data = await response.json();
@@ -158,6 +168,10 @@ async function loadConfig() {
             document.getElementById('adminRoleIds').value = config.adminRoleIds.join('\n');
             document.getElementById('loggingChannelId').value = config.logging.channelId;
             document.getElementById('retentionDays').value = config.logging.retentionDays;
+            document.getElementById('warningTitle').value = config.warningEmbed.title;
+            document.getElementById('warningMessage').value = config.warningEmbed.message;
+            document.getElementById('warningColor').value = config.warningEmbed.color;
+            syncColorValue('warning');
             for (const key of deliveryKeys) {
                 document.querySelector(`[data-delivery-key="${key}"]`).checked = config.logging.delivery[key];
                 document.querySelector(`[data-color-key="${key}"]`).value = config.logging.colors[key];

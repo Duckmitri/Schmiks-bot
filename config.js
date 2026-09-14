@@ -21,6 +21,11 @@ const defaultLogColors = Object.freeze({
   voiceJoin: '#57F287',
   voiceLeave: '#ED4245'
 });
+const defaultWarningEmbed = Object.freeze({
+  color: '#FEE75C',
+  title: 'Warning from {server}',
+  message: '{reason}\n\nModerator: {moderator}'
+});
 
 function readConfig() {
   try {
@@ -85,6 +90,33 @@ function readLoggingConfig() {
   return validateLoggingConfig(readConfig().logging);
 }
 
+function validateWarningEmbedConfig(value) {
+  const warningEmbed = value && typeof value === 'object' ? value : defaultWarningEmbed;
+  const color = warningEmbed.color === undefined ? defaultWarningEmbed.color : warningEmbed.color;
+  const title = warningEmbed.title === undefined ? defaultWarningEmbed.title : warningEmbed.title;
+  const message = warningEmbed.message === undefined ? defaultWarningEmbed.message : warningEmbed.message;
+
+  if (typeof color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color)) {
+    throw new TypeError('Warning embed color must use #RRGGBB format');
+  }
+  if (typeof title !== 'string' || !title.trim()) {
+    throw new TypeError('Warning embed title must be a nonblank string');
+  }
+  if (typeof message !== 'string' || !message.trim()) {
+    throw new TypeError('Warning embed message must be a nonblank string');
+  }
+
+  return {
+    color: color.toUpperCase(),
+    title: title.trim().slice(0, 256),
+    message: message.trim().slice(0, 4096)
+  };
+}
+
+function readWarningEmbedConfig() {
+  return validateWarningEmbedConfig(readConfig().warningEmbed);
+}
+
 function validateRoleIds(roleIds) {
   if (!Array.isArray(roleIds)) throw new TypeError('Role IDs must be an array');
 
@@ -95,19 +127,21 @@ function validateRoleIds(roleIds) {
   return normalized;
 }
 
-function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging }) {
+function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed }) {
   const saved = {
     prefix: validatePrefix(prefix),
     moderatorRoleIds: validateRoleIds(moderatorRoleIds),
     adminRoleIds: validateRoleIds(adminRoleIds),
-    logging: validateLoggingConfig(logging)
+    logging: validateLoggingConfig(logging),
+    warningEmbed: validateWarningEmbedConfig(warningEmbed)
   };
   const persisted = {
     ...readConfig(),
     prefix: saved.prefix,
     moderatorRoleId: saved.moderatorRoleIds,
     adminRoleId: saved.adminRoleIds,
-    logging: saved.logging
+    logging: saved.logging,
+    warningEmbed: saved.warningEmbed
   };
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
   fs.writeFileSync(configPath, `${JSON.stringify(persisted, null, 2)}\n`);
@@ -236,6 +270,8 @@ module.exports = {
   writePrefix,
   readLoggingConfig,
   validateLoggingConfig,
+  readWarningEmbedConfig,
+  validateWarningEmbedConfig,
   validateRoleIds,
   writeDashboardConfig,
   readRoleIds,

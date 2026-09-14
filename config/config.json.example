@@ -1,5 +1,10 @@
 {
   "prefix": "!",
+  "warningEmbed": {
+    "color": "#FEE75C",
+    "title": "Warning from {server}",
+    "message": "{reason}\n\nModerator: {moderator}"
+  },
   "logging": {
     "channelId": "",
     "retentionDays": 90,

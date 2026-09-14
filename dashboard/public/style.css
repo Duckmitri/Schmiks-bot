@@ -70,6 +70,7 @@ nav a.active { color: #fff; background: var(--accent); }
 .roles-icon { background: #af52de; }
 .logging-icon { background: #34c759; }
 .colors-icon { background: #ff9500; }
+.infractions-icon { background: #ff3b30; }
 nav a.active .nav-icon { color: var(--accent); background: #fff; }
 .local-note { display: flex; align-items: center; gap: 7px; margin: auto 10px 0; color: var(--secondary); font-size: 12px; }
 .local-note span, .status-pill span { width: 7px; height: 7px; border-radius: 50%; background: #34c759; box-shadow: 0 0 0 3px rgba(52, 199, 89, .15); }
