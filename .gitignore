@@ -1,8 +1,9 @@
 node_modules/
+docs/
+test/
 .claude/
 .superpowers/
 .worktrees/
-docs/
 config/config.json
 .env
 HANDOFF.md

@@ -15,6 +15,8 @@ const adminCommands = ['logs'];
 const linkPlatforms = ['YouTube', 'Twitch', 'TikTok', 'Instagram'];
 const logsPageSize = 10;
 const logViewBuilders = {};
+// ponytail: grows with successful link clicks; move to expiring/persistent storage if traffic makes that material.
+const usedLinkMessages = new Set();
 
 function memberHasAnyRole(member, roleIds) {
   return roleIds.some(id => Array.isArray(member.roles)
@@ -680,6 +682,16 @@ async function handleButtonInteraction(interaction) {
       });
       return true;
     }
+
+    const useKey = interaction.message?.id && `${interaction.message.id}:${interaction.user.id}`;
+    if (useKey && usedLinkMessages.has(useKey)) {
+      await interaction.reply({
+        content: 'You have already opened a link from this message.',
+        ephemeral: true
+      });
+      return true;
+    }
+    if (useKey) usedLinkMessages.add(useKey);
 
     const embed = new EmbedBuilder()
       .setTitle(link.name)

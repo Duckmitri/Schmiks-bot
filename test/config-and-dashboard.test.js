@@ -393,6 +393,29 @@ test('a link button returns a public hyperlink embed with its configured icon', 
   });
 });
 
+test('a user can use only one link button from the same links message', async () => {
+  const replies = [];
+  const interaction = customId => ({
+    customId,
+    message: { id: 'links-message-1' },
+    user: { id: 'user-1', tag: 'user' },
+    guild: { id: 'guild-1' },
+    guildId: 'guild-1',
+    channelId: 'channel-1',
+    reply: async payload => replies.push(payload)
+  });
+
+  await handleButtonInteraction(interaction('link:youtube'));
+  await handleButtonInteraction(interaction('link:youtube'));
+
+  assert.equal(replies.length, 2);
+  assert.equal(replies[0].ephemeral, undefined);
+  assert.deepEqual(replies[1], {
+    content: 'You have already opened a link from this message.',
+    ephemeral: true
+  });
+});
+
 test('dashboard returns and saves prefix plus logging without dropping unrelated keys', async (t) => {
   const server = app.listen(0, '127.0.0.1');
   t.after(() => server.close());

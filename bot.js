@@ -5,6 +5,7 @@ if (process.noDeprecation === undefined) {
 
 const { Client, GatewayIntentBits, Partials, PermissionFlagsBits } = require('discord.js');
 const { readPrefix, readRoleIds, readSlashCommands } = require('./config');
+const { createRateLimiter } = require('./rate-limit');
 const {
   handleButtonInteraction,
   handleMessageReactionAdd,
@@ -24,6 +25,9 @@ const {
 
 const token = process.env.DISCORD_TOKEN;
 if (!token) throw new Error('DISCORD_TOKEN is required');
+
+const allowCommand = createRateLimiter(2_000);
+const allowButton = createRateLimiter(2_000);
 
 const client = new Client({ intents: [
   GatewayIntentBits.Guilds,
@@ -90,6 +94,10 @@ client.on('messageCreate', async message => {
     return;
   }
   if (!message.content.startsWith(prefix)) return;
+  if (!allowCommand(message.author.id)) {
+    await message.reply('Please wait 2 seconds before using another command.');
+    return;
+  }
 
   // Handle prefix command using the command handler
   try {
@@ -142,6 +150,13 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 // Handle slash commands
 client.on('interactionCreate', async interaction => {
   if (interaction.isButton()) {
+    if (!allowButton(interaction.user.id)) {
+      await interaction.reply({
+        content: 'Please wait 2 seconds before using another button.',
+        ephemeral: true
+      });
+      return;
+    }
     try {
       await handleButtonInteraction(interaction);
     } catch (error) {
@@ -151,6 +166,13 @@ client.on('interactionCreate', async interaction => {
   }
 
   if (!interaction.isChatInputCommand()) return;
+  if (!allowCommand(interaction.user.id)) {
+    await interaction.reply({
+      content: 'Please wait 2 seconds before using another command.',
+      ephemeral: true
+    });
+    return;
+  }
 
   // Handle slash command using the command handler
   try {
