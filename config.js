@@ -256,10 +256,19 @@ function addBuiltInSlashCommands(commands) {
       .setDescription('Reason for warning')
       .setRequired(true));
 
+  const infractionsCommand = new SlashCommandBuilder()
+    .setName('infractions')
+    .setDescription('View a member\'s infraction history')
+    .addUserOption(option => option
+      .setName('target')
+      .setDescription('Member whose infractions to view')
+      .setRequired(true));
+
   return [
-    ...commands.filter(command => !['logs', 'kick', 'warn'].includes(command.name)),
+    ...commands.filter(command => !['logs', 'kick', 'warn', 'infractions'].includes(command.name)),
     kickCommand.toJSON(),
     warnCommand.toJSON(),
+    infractionsCommand.toJSON(),
     logsCommand.toJSON()
   ];
 }

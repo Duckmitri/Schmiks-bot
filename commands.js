@@ -12,7 +12,7 @@ const { deliverLogEvent } = require('./event-logging');
 
 // Define command sets
 const publicCommands = ['links'];
-const moderatorCommands = ['server-info', 'kick', 'warn'];
+const moderatorCommands = ['server-info', 'kick', 'warn', 'infractions'];
 const adminCommands = ['logs'];
 const linkPlatforms = ['YouTube', 'Twitch', 'TikTok', 'Instagram'];
 const logsPageSize = 10;
@@ -281,6 +281,36 @@ async function executeKick({ guild, target, moderator, reason }) {
   return { success: true, dmDelivered };
 }
 
+function buildInfractionsView(guildId, target, requestedPage = 0, requestedThroughId) {
+  const pageData = readInfractionsPage(guildId, target.id, requestedPage, logsPageSize, requestedThroughId);
+  const description = pageData.infractions.length === 0
+    ? 'No infractions have been recorded for this member.'
+    : pageData.infractions.map(infraction =>
+      `**${infraction.type === 'kick' ? 'Kick' : 'Warn'}** • <@${safeId(infraction.moderator_user_id)}> • ${discordTimestamp(infraction.occurred_at)}\n${escapeUntrustedMarkdown(infraction.reason, 240)}`
+    ).join('\n\n');
+  const countLabel = pageData.total === 1 ? 'infraction' : 'infractions';
+  const components = [new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`infractions:${target.id}:${pageData.page - 1}:${pageData.throughId}`)
+      .setLabel('Previous')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(pageData.page === 0),
+    new ButtonBuilder()
+      .setCustomId(`infractions:${target.id}:${pageData.page + 1}:${pageData.throughId}`)
+      .setLabel('Next')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(pageData.page >= pageData.pageCount - 1)
+  )];
+  const embed = new EmbedBuilder()
+    .setTitle(`Infractions for ${target.user.tag}`)
+    .setColor(0x5865f2)
+    .setDescription(description)
+    .setFooter({ text: `Page ${pageData.page + 1} of ${pageData.pageCount} • ${pageData.total} ${countLabel}` })
+    .setTimestamp();
+
+  return { embeds: [embed], components };
+}
+
 function renderWarningTemplate(template, { server, reason, moderator }) {
   return String(template)
     .replaceAll('{server}', server)
@@ -529,6 +559,32 @@ const commandHandlers = {
     }
   },
 
+  'infractions': async (messageOrInteraction, argsOrOptions, isSlash) => {
+    try {
+      const target = isSlash
+        ? messageOrInteraction.options.getMember('target')
+        : messageOrInteraction.mentions.members.first();
+      if (!target) {
+        const invokedCommand = isSlash
+          ? '/infractions'
+          : messageOrInteraction.content.trim().split(/\s+/)[0];
+        const reply = { content: `Usage: ${invokedCommand} @member` };
+        if (isSlash) reply.ephemeral = true;
+        await messageOrInteraction.reply(reply);
+        return { success: false, errorCode: 'INVALID_OPTION' };
+      }
+
+      await messageOrInteraction.reply(buildInfractionsView(messageOrInteraction.guild.id, target));
+      return { success: true };
+    } catch (error) {
+      console.error('Error in infractions command:', error);
+      const reply = { content: 'Could not load member infractions.' };
+      if (isSlash) reply.ephemeral = true;
+      await messageOrInteraction.reply(reply);
+      return { success: false, errorCode: 'EXECUTION_FAILED' };
+    }
+  },
+
   'logs': async (messageOrInteraction, argsOrOptions, isSlash) => {
     let logType;
     try {
@@ -709,6 +765,47 @@ async function handleSlashCommand(interaction) {
  */
 async function handleButtonInteraction(interaction) {
   const startedAt = Date.now();
+  const infractionsPage = /^infractions:(\d{17,20}):(\d+):(\d+)$/.exec(interaction.customId);
+
+  if (infractionsPage) {
+    try {
+      const { moderatorRoleIds, adminRoleIds } = readRoleIds();
+      if (!memberHasAnyRole(interaction.member, [...moderatorRoleIds, ...adminRoleIds])) {
+        await interaction.reply({
+          content: 'You do not have permission to view member infractions.',
+          ephemeral: true
+        });
+        auditInteraction(interaction, 'button', interaction.customId, startedAt, {
+          success: false,
+          errorCode: 'PERMISSION_DENIED'
+        });
+        return true;
+      }
+
+      const targetUserId = infractionsPage[1];
+      const fallback = { id: targetUserId, user: { tag: targetUserId } };
+      const target = typeof interaction.guild.members?.fetch === 'function'
+        ? await interaction.guild.members.fetch(targetUserId).catch(() => fallback)
+        : fallback;
+      await interaction.update(buildInfractionsView(
+        interaction.guildId,
+        target,
+        Number.parseInt(infractionsPage[2], 10),
+        Number.parseInt(infractionsPage[3], 10)
+      ));
+      auditInteraction(interaction, 'button', interaction.customId, startedAt, { success: true });
+      return true;
+    } catch (error) {
+      console.error('Error changing infraction page:', error);
+      await interaction.reply({ content: 'Could not load member infractions.', ephemeral: true });
+      auditInteraction(interaction, 'button', interaction.customId, startedAt, {
+        success: false,
+        errorCode: 'EXECUTION_FAILED'
+      });
+      return true;
+    }
+  }
+
   const logsPage = /^logs:(commands|messages|general):(\d+):(\d+)$/.exec(interaction.customId);
 
   if (logsPage) {
@@ -797,6 +894,7 @@ async function handleButtonInteraction(interaction) {
 }
 
 module.exports = {
+  buildInfractionsView,
   buildCommandLogsView,
   buildMessageLogsView,
   buildGeneralLogsView,
