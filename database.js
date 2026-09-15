@@ -96,7 +96,7 @@ database.exec(`
     guild_id          TEXT NOT NULL,
     target_user_id    TEXT NOT NULL,
     moderator_user_id TEXT NOT NULL,
-    type              TEXT NOT NULL CHECK (type IN ('warn', 'kick')),
+    type              TEXT NOT NULL CHECK (type IN ('warn', 'kick', 'ban')),
     reason            TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS infractions_guild_target_idx
@@ -210,8 +210,8 @@ const insertInfraction = database.prepare(`
 `);
 
 function logInfraction(infraction) {
-  if (!['warn', 'kick'].includes(infraction.type)) {
-    throw new TypeError("type must be 'warn' or 'kick'");
+  if (!['warn', 'kick', 'ban'].includes(infraction.type)) {
+    throw new TypeError("type must be 'warn', 'kick', or 'ban'");
   }
   if (typeof infraction.reason !== 'string' || !infraction.reason.trim()) {
     throw new TypeError('reason must be a nonblank string');

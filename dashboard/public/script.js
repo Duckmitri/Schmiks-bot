@@ -7,7 +7,7 @@ const deliveryKeys = [
     'voiceJoin',
     'voiceLeave'
 ];
-const colorKeys = [...deliveryKeys, 'warning'];
+const colorKeys = [...deliveryKeys, 'warning', 'kick', 'ban'];
 
 function getLoggingFormValue() {
     const delivery = Object.fromEntries(deliveryKeys.map(key => [
@@ -32,6 +32,22 @@ function getWarningEmbedFormValue() {
         color: document.getElementById('warningColor').value.toUpperCase(),
         title: document.getElementById('warningTitle').value,
         message: document.getElementById('warningMessage').value
+    };
+}
+
+function getKickEmbedFormValue() {
+    return {
+        color: document.getElementById('kickColor').value.toUpperCase(),
+        title: document.getElementById('kickTitle').value,
+        message: document.getElementById('kickMessage').value
+    };
+}
+
+function getBanEmbedFormValue() {
+    return {
+        color: document.getElementById('banColor').value.toUpperCase(),
+        title: document.getElementById('banTitle').value,
+        message: document.getElementById('banMessage').value
     };
 }
 
@@ -127,6 +143,8 @@ document.getElementById('configForm').addEventListener('submit', async (e) => {
     const adminRoleIds = getRoleIds('adminRoleIds');
     const logging = getLoggingFormValue();
     const warningEmbed = getWarningEmbedFormValue();
+    const kickEmbed = getKickEmbedFormValue();
+    const banEmbed = getBanEmbedFormValue();
 
     const messageDiv = document.getElementById('message');
     messageDiv.style.display = 'none';
@@ -137,7 +155,7 @@ document.getElementById('configForm').addEventListener('submit', async (e) => {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed })
+            body: JSON.stringify({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed, kickEmbed, banEmbed })
         });
 
         const data = await response.json();
@@ -172,6 +190,16 @@ async function loadConfig() {
             document.getElementById('warningMessage').value = config.warningEmbed.message;
             document.getElementById('warningColor').value = config.warningEmbed.color;
             syncColorValue('warning');
+
+            document.getElementById('kickTitle').value = config.kickEmbed.title;
+            document.getElementById('kickMessage').value = config.kickEmbed.message;
+            document.getElementById('kickColor').value = config.kickEmbed.color;
+            syncColorValue('kick');
+
+            document.getElementById('banTitle').value = config.banEmbed.title;
+            document.getElementById('banMessage').value = config.banEmbed.message;
+            document.getElementById('banColor').value = config.banEmbed.color;
+            syncColorValue('ban');
             for (const key of deliveryKeys) {
                 document.querySelector(`[data-delivery-key="${key}"]`).checked = config.logging.delivery[key];
                 document.querySelector(`[data-color-key="${key}"]`).value = config.logging.colors[key];
@@ -183,4 +211,78 @@ async function loadConfig() {
     }
 }
 
-window.addEventListener('load', loadConfig);
+// Navigation handling
+function setupNavigation() {
+  const navLinks = document.querySelectorAll('nav a');
+  const sections = document.querySelectorAll('.settings-section');
+
+  // Function to show a section and update active nav link
+  function showSection(sectionId) {
+    // Hide all sections
+    sections.forEach(section => {
+      section.style.display = 'none';
+    });
+
+    // Remove active class from all nav links
+    navLinks.forEach(link => {
+      link.classList.remove('active');
+    });
+
+    // Show the target section if it exists
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+      targetSection.style.display = 'block';
+
+      // Add active class to the corresponding nav link
+      const activeLink = document.querySelector(`nav a[href="#${sectionId}"]`);
+      if (activeLink) {
+        activeLink.classList.add('active');
+      }
+    }
+  }
+
+  // Handle nav link clicks
+  navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const sectionId = link.getAttribute('href').substring(1); // Remove '#'
+      showSection(sectionId);
+      // Update URL hash without scrolling
+      history.pushState(null, null, `#${sectionId}`);
+    });
+  });
+
+  // Show the appropriate section on page load
+  window.addEventListener('load', () => {
+    const hash = window.location.hash.substring(1); // Remove '#'
+    if (hash && document.getElementById(hash)) {
+      showSection(hash);
+    } else {
+      // Default to first section (General)
+      const firstSectionId = navLinks[0]?.getAttribute('href')?.substring(1);
+      if (firstSectionId) {
+        showSection(firstSectionId);
+      }
+    }
+  });
+
+  // Handle back/forward navigation
+  window.addEventListener('popstate', () => {
+    const hash = window.location.hash.substring(1); // Remove '#'
+    if (hash && document.getElementById(hash)) {
+      showSection(hash);
+    } else {
+      // Default to first section (General)
+      const firstSectionId = navLinks[0]?.getAttribute('href')?.substring(1);
+      if (firstSectionId) {
+        showSection(firstSectionId);
+      }
+    }
+  });
+}
+
+// Add setupNavigation to be called on load
+window.addEventListener('load', () => {
+  setupNavigation();
+  loadConfig();
+});

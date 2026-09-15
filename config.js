@@ -26,6 +26,16 @@ const defaultWarningEmbed = Object.freeze({
   title: 'Warning from {server}',
   message: '{reason}\n\nModerator: {moderator}'
 });
+const defaultKickEmbed = Object.freeze({
+  color: '#ED4245',
+  title: 'Kicked from {server}',
+  message: '{reason}\n\nModerator: {moderator}'
+});
+const defaultBanEmbed = Object.freeze({
+  color: '#ED4245',
+  title: 'Banned from {server}',
+  message: '{reason}\n\nModerator: {moderator}'
+});
 
 function readConfig() {
   try {
@@ -113,8 +123,62 @@ function validateWarningEmbedConfig(value) {
   };
 }
 
+function validateKickEmbedConfig(value) {
+  const kickEmbed = value && typeof value === 'object' ? value : defaultKickEmbed;
+  const color = kickEmbed.color === undefined ? defaultKickEmbed.color : kickEmbed.color;
+  const title = kickEmbed.title === undefined ? defaultKickEmbed.title : kickEmbed.title;
+  const message = kickEmbed.message === undefined ? defaultKickEmbed.message : kickEmbed.message;
+
+  if (typeof color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color)) {
+    throw new TypeError('Kick embed color must use #RRGGBB format');
+  }
+  if (typeof title !== 'string' || !title.trim()) {
+    throw new TypeError('Kick embed title must be a nonblank string');
+  }
+  if (typeof message !== 'string' || !message.trim()) {
+    throw new TypeError('Kick embed message must be a nonblank string');
+  }
+
+  return {
+    color: color.toUpperCase(),
+    title: title.trim().slice(0, 256),
+    message: message.trim().slice(0, 4096)
+  };
+}
+
+function validateBanEmbedConfig(value) {
+  const banEmbed = value && typeof value === 'object' ? value : defaultBanEmbed;
+  const color = banEmbed.color === undefined ? defaultBanEmbed.color : banEmbed.color;
+  const title = banEmbed.title === undefined ? defaultBanEmbed.title : banEmbed.title;
+  const message = banEmbed.message === undefined ? defaultBanEmbed.message : banEmbed.message;
+
+  if (typeof color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color)) {
+    throw new TypeError('Ban embed color must use #RRGGBB format');
+  }
+  if (typeof title !== 'string' || !title.trim()) {
+    throw new TypeError('Ban embed title must be a nonblank string');
+  }
+  if (typeof message !== 'string' || !message.trim()) {
+    throw new TypeError('Ban embed message must be a nonblank string');
+  }
+
+  return {
+    color: color.toUpperCase(),
+    title: title.trim().slice(0, 256),
+    message: message.trim().slice(0, 4096)
+  };
+}
+
 function readWarningEmbedConfig() {
   return validateWarningEmbedConfig(readConfig().warningEmbed);
+}
+
+function readKickEmbedConfig() {
+  return validateKickEmbedConfig(readConfig().kickEmbed);
+}
+
+function readBanEmbedConfig() {
+  return validateBanEmbedConfig(readConfig().banEmbed);
 }
 
 function validateRoleIds(roleIds) {
@@ -127,13 +191,15 @@ function validateRoleIds(roleIds) {
   return normalized;
 }
 
-function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed }) {
+function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed, kickEmbed, banEmbed }) {
   const saved = {
     prefix: validatePrefix(prefix),
     moderatorRoleIds: validateRoleIds(moderatorRoleIds),
     adminRoleIds: validateRoleIds(adminRoleIds),
     logging: validateLoggingConfig(logging),
-    warningEmbed: validateWarningEmbedConfig(warningEmbed)
+    warningEmbed: validateWarningEmbedConfig(warningEmbed),
+    kickEmbed: validateKickEmbedConfig(kickEmbed),
+    banEmbed: validateBanEmbedConfig(banEmbed)
   };
   const persisted = {
     ...readConfig(),
@@ -141,7 +207,9 @@ function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging,
     moderatorRoleId: saved.moderatorRoleIds,
     adminRoleId: saved.adminRoleIds,
     logging: saved.logging,
-    warningEmbed: saved.warningEmbed
+    warningEmbed: saved.warningEmbed,
+    kickEmbed: saved.kickEmbed,
+    banEmbed: saved.banEmbed
   };
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
   fs.writeFileSync(configPath, `${JSON.stringify(persisted, null, 2)}\n`);
@@ -231,6 +299,22 @@ function addBuiltInSlashCommands(commands) {
       .setDescription('Reason for kicking')
       .setRequired(true));
 
+  const banCommand = new SlashCommandBuilder()
+    .setName('ban')
+    .setDescription('Ban a member')
+    .addUserOption(option => option
+      .setName('target')
+      .setDescription('Member to ban')
+      .setRequired(true))
+    .addStringOption(option => option
+      .setName('length')
+      .setDescription('Ban length (1d, 1w, 1m, 1y)')
+      .setRequired(true))
+    .addStringOption(option => option
+      .setName('reason')
+      .setDescription('Reason for banning')
+      .setRequired(true));
+
   const logsCommand = new SlashCommandBuilder()
     .setName('logs')
     .setDescription('View server logs')
@@ -265,8 +349,9 @@ function addBuiltInSlashCommands(commands) {
       .setRequired(true));
 
   return [
-    ...commands.filter(command => !['logs', 'kick', 'warn', 'infractions'].includes(command.name)),
+    ...commands.filter(command => !['logs', 'kick', 'ban', 'warn', 'infractions'].includes(command.name)),
     kickCommand.toJSON(),
+    banCommand.toJSON(),
     warnCommand.toJSON(),
     infractionsCommand.toJSON(),
     logsCommand.toJSON()
@@ -294,6 +379,10 @@ module.exports = {
   validateLoggingConfig,
   readWarningEmbedConfig,
   validateWarningEmbedConfig,
+  readKickEmbedConfig,
+  validateKickEmbedConfig,
+  readBanEmbedConfig,
+  validateBanEmbedConfig,
   validateRoleIds,
   writeDashboardConfig,
   readRoleIds,

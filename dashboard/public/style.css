@@ -68,6 +68,7 @@ nav a.active { color: #fff; background: var(--accent); }
     line-height: 1;
 }
 .roles-icon { background: #af52de; }
+.appearance-icon { background: #9b59b6; }
 .logging-icon { background: #34c759; }
 .colors-icon { background: #ff9500; }
 .infractions-icon { background: #ff3b30; }
@@ -85,8 +86,32 @@ h3 { margin: 24px 0 10px 2px; font-size: 13px; }
 .settings-section { margin-bottom: 46px; scroll-margin-top: 24px; }
 .section-heading { margin: 0 2px 12px; }
 .section-heading p { margin: 4px 0 0; color: var(--secondary); line-height: 1.45; }
-.settings-group { margin: 0; padding: 0 16px; border: 1px solid var(--separator); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.settings-group { margin: 0 0 24px 0; padding: 0 16px; border: 1px solid var(--separator); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.settings-group:last-child { margin-bottom: 0; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 30px; min-height: 58px; padding: 10px 0; border-bottom: 1px solid var(--separator); }
+.toggle-color-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.toggle-color-group input[type="checkbox"] {
+    width: 38px;
+    height: 22px;
+    margin: 0;
+}
+.toggle-color-group .color-control {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 110px;
+    padding: 5px 9px 5px 6px;
+    border: 1px solid var(--separator);
+    border-radius: 9px;
+    background: var(--field);
+    color: var(--text);
+    font-weight: 400;
+    cursor: pointer;
+}
 .setting-row:last-child { border-bottom: 0; }
 .setting-row > span:first-child { min-width: 0; }
 .setting-row strong, .setting-row small { display: block; }
@@ -94,7 +119,8 @@ h3 { margin: 24px 0 10px 2px; font-size: 13px; }
 .setting-row small { margin-top: 3px; color: var(--secondary); font-size: 12px; }
 .setting-row.stacked { align-items: flex-start; flex-direction: column; gap: 10px; padding: 14px 0; }
 
-input[type="text"], input[type="number"], textarea { width: min(300px, 52%); padding: 7px 10px; color: var(--text); background: var(--field); border: 1px solid transparent; border-radius: 7px; outline: none; }
+input[type="text"], input[type="number"], textarea { width: min(300px, 52%); padding: 7px 10px; color: var(--text); background: var(--field); border: 1px solid transparent; border-radius: 12px; outline: none; }
+#warningTitle, #warningMessage { border-radius: 12px !important; }
 textarea { width: 100%; resize: vertical; line-height: 1.4; }
 input[type="text"]:focus, input[type="number"]:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 122, 255, .16); }
 .input-with-suffix { display: flex; align-items: center; gap: 8px; }

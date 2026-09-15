@@ -12,7 +12,7 @@ const { deliverLogEvent } = require('./event-logging');
 
 // Define command sets
 const publicCommands = ['links'];
-const moderatorCommands = ['server-info', 'kick', 'warn', 'infractions'];
+const moderatorCommands = ['server-info', 'kick', 'warn', 'infractions', 'ban'];
 const adminCommands = ['logs'];
 const linkPlatforms = ['YouTube', 'Twitch', 'TikTok', 'Instagram'];
 const logsPageSize = 10;
@@ -285,9 +285,13 @@ function buildInfractionsView(guildId, target, requestedPage = 0, requestedThrou
   const pageData = readInfractionsPage(guildId, target.id, requestedPage, logsPageSize, requestedThroughId);
   const description = pageData.infractions.length === 0
     ? 'No infractions have been recorded for this member.'
-    : pageData.infractions.map(infraction =>
-      `**${infraction.type === 'kick' ? 'Kick' : 'Warn'}** • <@${safeId(infraction.moderator_user_id)}> • ${discordTimestamp(infraction.occurred_at)}\n${escapeUntrustedMarkdown(infraction.reason, 240)}`
-    ).join('\n\n');
+    : pageData.infractions.map(infraction => {
+      const typeDisplay = infraction.type === 'kick' ? 'Kick' :
+                         infraction.type === 'warn' ? 'Warn' :
+                         infraction.type === 'ban' ? 'Ban' :
+                         infraction.type;
+      return `**${typeDisplay}** • <@${safeId(infraction.moderator_user_id)}> • ${discordTimestamp(infraction.occurred_at)}\n${escapeUntrustedMarkdown(infraction.reason, 240)}`;
+    }).join('\n\n');
   const countLabel = pageData.total === 1 ? 'infraction' : 'infractions';
   const components = [new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -343,6 +347,41 @@ async function executeWarn({ guild, target, moderator, reason }) {
     return { success: true, dmDelivered: true };
   } catch {
     return { success: true, dmDelivered: false };
+  }
+}
+
+async function executeBan({ guild, target, moderator, reason, length }) {
+  if (!target?.id) throw new TypeError('target is required');
+  if (typeof reason !== 'string' || !reason.trim()) throw new TypeError('reason is required');
+  if (typeof length !== 'string') throw new TypeError('length is required');
+
+  const boundedReason = reason.trim().slice(0, 512);
+  const boundedLength = length.trim().toLowerCase();
+
+  // Validate length format (1d, 1w, 1m, 1y)
+  const lengthRegex = /^\d(d|w|m|y)$/;
+  if (!lengthRegex.test(boundedLength)) {
+    throw new TypeError('length must be in format: 1d, 1w, 1m, or 1y');
+  }
+
+  try {
+    await target.ban({ reason: boundedReason, deleteMessageSeconds: 0 });
+    logInfraction({
+      guildId: guild.id,
+      targetUserId: target.id,
+      moderatorUserId: moderator.id,
+      type: 'ban',
+      reason: `${boundedReason} | Length: ${boundedLength}`
+    });
+    return { success: true, length: boundedLength };
+  } catch (error) {
+    if (error.code === 50013) { // Missing Permissions
+      return { success: false, errorCode: 'MISSING_PERMISSIONS' };
+    }
+    if (error.code === 10007) { // Unknown User
+      return { success: false, errorCode: 'UNKNOWN_USER' };
+    }
+    throw error;
   }
 }
 
@@ -586,6 +625,59 @@ const commandHandlers = {
       const reply = { content: 'Could not load member infractions.' };
       if (isSlash) reply.ephemeral = true;
       await messageOrInteraction.reply(reply);
+      return { success: false, errorCode: 'EXECUTION_FAILED' };
+    }
+  },
+
+  'ban': async (messageOrInteraction, argsOrOptions, isSlash) => {
+    try {
+      const target = isSlash
+        ? messageOrInteraction.options.getMember('target')
+        : messageOrInteraction.mentions.members.first();
+      const length = isSlash
+        ? messageOrInteraction.options.getString('length', true)
+        : argsOrOptions[1]?.trim();
+      const reason = isSlash
+        ? messageOrInteraction.options.getString('reason', true)
+        : argsOrOptions.slice(2).join(' ').trim();
+
+      if (!target || !length || !reason) {
+        const invokedCommand = isSlash
+          ? '/ban'
+          : messageOrInteraction.content.trim().split(/\s+/)[0];
+        await messageOrInteraction.reply(`Usage: ${invokedCommand} @member <length> <reason>\nLength format: 1d, 1w, 1m, 1y`);
+        return { success: false, errorCode: 'INVALID_OPTION' };
+      }
+
+      const moderator = isSlash ? messageOrInteraction.user : messageOrInteraction.author;
+      const result = await executeBan({
+        guild: messageOrInteraction.guild,
+        target,
+        moderator,
+        reason,
+        length
+      });
+
+      if (result.success) {
+        await messageOrInteraction.reply(`The member has been banned for ${result.length || length}.`);
+      } else {
+        switch (result.errorCode) {
+          case 'MISSING_PERMISSIONS':
+            await messageOrInteraction.reply('I do not have permission to ban this member.');
+            break;
+          case 'UNKNOWN_USER':
+            await messageOrInteraction.reply('That user could not be found.');
+            break;
+          default:
+            await messageOrInteraction.reply('An error occurred while attempting to ban the member.');
+        }
+      }
+      return result;
+    } catch (error) {
+      console.error('Error in ban command:', error);
+      const errorReply = { content: 'An error occurred while executing the ban command.' };
+      if (isSlash) errorReply.ephemeral = true;
+      await messageOrInteraction.reply(errorReply);
       return { success: false, errorCode: 'EXECUTION_FAILED' };
     }
   },
@@ -905,6 +997,7 @@ module.exports = {
   buildGeneralLogsView,
   executeKick,
   executeWarn,
+  executeBan,
   handleButtonInteraction,
   handleMessageReactionAdd,
   handlePrefixCommand,

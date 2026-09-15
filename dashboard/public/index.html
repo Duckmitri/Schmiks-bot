@@ -16,10 +16,9 @@
                 <div><strong>Schmiks</strong><span>Bot settings</span></div>
             </div>
             <nav aria-label="Configuration sections">
-                <a href="#general" class="active"><span class="nav-icon general-icon" aria-hidden="true">⚙</span>General</a>
-                <a href="#roles"><span class="nav-icon roles-icon" aria-hidden="true">♙</span>Command roles</a>
-                <a href="#logging"><span class="nav-icon logging-icon" aria-hidden="true">●</span>Logging</a>
-                <a href="#colors"><span class="nav-icon colors-icon" aria-hidden="true">◆</span>Embed colors</a>
+                <a href="#general"><span class="nav-icon general-icon" aria-hidden="true">⚙</span>General</a>
+                <a href="#roles"><span class="nav-icon roles-icon" aria-hidden="true">♙</span>Permissions</a>
+                <a href="#appearance"><span class="nav-icon appearance-icon" aria-hidden="true">◑</span>Appearance</a>
                 <a href="#infractions"><span class="nav-icon infractions-icon" aria-hidden="true">!</span>Infractions</a>
             </nav>
             <p class="local-note"><span></span>Local dashboard</p>
@@ -43,9 +42,9 @@
                 </section>
 
                 <section id="roles" class="settings-section">
-                    <div class="section-heading"><h2>Command roles</h2><p>Enter one Discord role ID per line.</p></div>
+                    <div class="section-heading"><h2>Permissions</h2><p>Set which roles can use moderation and admin commands.</p></div>
                     <fieldset class="settings-group">
-                        <legend class="visually-hidden">Command roles</legend>
+                        <legend class="visually-hidden">Permissions</legend>
                         <label class="setting-row stacked" for="moderatorRoleIds">
                             <span><strong>Moderator roles</strong><small>Can use moderation commands</small></span>
                             <textarea id="moderatorRoleIds" name="moderatorRoleIds" rows="3" placeholder="One role ID per line"></textarea>
@@ -57,8 +56,8 @@
                     </fieldset>
                 </section>
 
-                <section id="logging" class="settings-section">
-                    <div class="section-heading"><h2>Logging</h2><p>Store activity and optionally deliver it to Discord.</p></div>
+                <section id="appearance" class="settings-section">
+                    <div class="section-heading"><h2>Appearance</h2><p>Customize logging and visual settings.</p></div>
                     <fieldset class="settings-group">
                         <legend class="visually-hidden">Logging</legend>
                         <label class="setting-row" for="loggingChannelId">
@@ -73,35 +72,74 @@
 
                     <h3>Deliver to Discord</h3>
                     <div class="settings-group delivery-options">
-                        <label class="setting-row"><span>Command execution</span><input type="checkbox" data-delivery-key="commandExecution"></label>
-                        <label class="setting-row"><span>Message edit</span><input type="checkbox" data-delivery-key="messageEdit"></label>
-                        <label class="setting-row"><span>Message delete</span><input type="checkbox" data-delivery-key="messageDelete"></label>
-                        <label class="setting-row"><span>Member join</span><input type="checkbox" data-delivery-key="memberJoin"></label>
-                        <label class="setting-row"><span>Member leave</span><input type="checkbox" data-delivery-key="memberLeave"></label>
-                        <label class="setting-row"><span>Voice join</span><input type="checkbox" data-delivery-key="voiceJoin"></label>
-                        <label class="setting-row"><span>Voice leave</span><input type="checkbox" data-delivery-key="voiceLeave"></label>
-                    </div>
-                </section>
-
-                <section id="colors" class="settings-section">
-                    <div class="section-heading"><h2>Embed colors</h2><p>Choose the accent used for each activity type.</p></div>
-                    <div class="settings-group color-options">
-                        <div class="setting-row"><span>Command execution</span><button class="color-control" type="button" data-color-trigger="commandExecution" aria-label="Change command execution color"><span class="color-swatch"></span><output data-color-value="commandExecution">#5865F2</output></button><input type="hidden" data-color-key="commandExecution" value="#5865F2"></div>
-                        <div class="setting-row"><span>Message edit</span><button class="color-control" type="button" data-color-trigger="messageEdit" aria-label="Change message edit color"><span class="color-swatch"></span><output data-color-value="messageEdit">#FEE75C</output></button><input type="hidden" data-color-key="messageEdit" value="#FEE75C"></div>
-                        <div class="setting-row"><span>Message delete</span><button class="color-control" type="button" data-color-trigger="messageDelete" aria-label="Change message delete color"><span class="color-swatch"></span><output data-color-value="messageDelete">#ED4245</output></button><input type="hidden" data-color-key="messageDelete" value="#ED4245"></div>
-                        <div class="setting-row"><span>Member join</span><button class="color-control" type="button" data-color-trigger="memberJoin" aria-label="Change member join color"><span class="color-swatch"></span><output data-color-value="memberJoin">#57F287</output></button><input type="hidden" data-color-key="memberJoin" value="#57F287"></div>
-                        <div class="setting-row"><span>Member leave</span><button class="color-control" type="button" data-color-trigger="memberLeave" aria-label="Change member leave color"><span class="color-swatch"></span><output data-color-value="memberLeave">#ED4245</output></button><input type="hidden" data-color-key="memberLeave" value="#ED4245"></div>
-                        <div class="setting-row"><span>Voice join</span><button class="color-control" type="button" data-color-trigger="voiceJoin" aria-label="Change voice join color"><span class="color-swatch"></span><output data-color-value="voiceJoin">#57F287</output></button><input type="hidden" data-color-key="voiceJoin" value="#57F287"></div>
-                        <div class="setting-row"><span>Voice leave</span><button class="color-control" type="button" data-color-trigger="voiceLeave" aria-label="Change voice leave color"><span class="color-swatch"></span><output data-color-value="voiceLeave">#ED4245</output></button><input type="hidden" data-color-key="voiceLeave" value="#ED4245"></div>
+                        <div class="setting-row">
+                            <span>Command execution</span>
+                            <div class="toggle-color-group">
+                                <input type="checkbox" data-delivery-key="commandExecution">
+                                <button class="color-control" type="button" data-color-trigger="commandExecution" aria-label="Change command execution color"><span class="color-swatch"></span><output data-color-value="commandExecution">#5865F2</output></button><input type="hidden" data-color-key="commandExecution" value="#5865F2">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span>Message edit</span>
+                            <div class="toggle-color-group">
+                                <input type="checkbox" data-delivery-key="messageEdit">
+                                <button class="color-control" type="button" data-color-trigger="messageEdit" aria-label="Change message edit color"><span class="color-swatch"></span><output data-color-value="messageEdit">#FEE75C</output></button><input type="hidden" data-color-key="messageEdit" value="#FEE75C">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span>Message delete</span>
+                            <div class="toggle-color-group">
+                                <input type="checkbox" data-delivery-key="messageDelete">
+                                <button class="color-control" type="button" data-color-trigger="messageDelete" aria-label="Change message delete color"><span class="color-swatch"></span><output data-color-value="messageDelete">#ED4245</output></button><input type="hidden" data-color-key="messageDelete" value="#ED4245">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span>Member join</span>
+                            <div class="toggle-color-group">
+                                <input type="checkbox" data-delivery-key="memberJoin">
+                                <button class="color-control" type="button" data-color-trigger="memberJoin" aria-label="Change member join color"><span class="color-swatch"></span><output data-color-value="memberJoin">#57F287</output></button><input type="hidden" data-color-key="memberJoin" value="#57F287">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span>Member leave</span>
+                            <div class="toggle-color-group">
+                                <input type="checkbox" data-delivery-key="memberLeave">
+                                <button class="color-control" type="button" data-color-trigger="memberLeave" aria-label="Change member leave color"><span class="color-swatch"></span><output data-color-value="memberLeave">#ED4245</output></button><input type="hidden" data-color-key="memberLeave" value="#ED4245">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span>Voice join</span>
+                            <div class="toggle-color-group">
+                                <input type="checkbox" data-delivery-key="voiceJoin">
+                                <button class="color-control" type="button" data-color-trigger="voiceJoin" aria-label="Change voice join color"><span class="color-swatch"></span><output data-color-value="voiceJoin">#57F287</output></button><input type="hidden" data-color-key="voiceJoin" value="#57F287">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span>Voice leave</span>
+                            <div class="toggle-color-group">
+                                <input type="checkbox" data-delivery-key="voiceLeave">
+                                <button class="color-control" type="button" data-color-trigger="voiceLeave" aria-label="Change voice leave color"><span class="color-swatch"></span><output data-color-value="voiceLeave">#ED4245</output></button><input type="hidden" data-color-key="voiceLeave" value="#ED4245">
+                            </div>
+                        </div>
                     </div>
                 </section>
 
                 <section id="infractions" class="settings-section">
-                    <div class="section-heading"><h2>Infractions</h2><p>Customize warning messages sent to members.</p></div>
+                    <div class="section-heading"><h2>Infractions</h2><p>Customize infraction messages sent to members.</p></div>
                     <div class="settings-group">
                         <div class="setting-row"><span><strong>Warning color</strong><small>Embed accent color</small></span><button class="color-control" type="button" data-color-trigger="warning" aria-label="Change warning color"><span class="color-swatch"></span><output data-color-value="warning">#FEE75C</output></button><input id="warningColor" type="hidden" data-color-key="warning" value="#FEE75C"></div>
-                        <label class="setting-row stacked" for="warningTitle"><span><strong>Title template</strong><small>Supports {server}, {reason}, and {moderator}</small></span><input id="warningTitle" maxlength="256" required></label>
-                        <label class="setting-row stacked" for="warningMessage"><span><strong>Message template</strong><small>Supports {server}, {reason}, and {moderator}</small></span><textarea id="warningMessage" rows="5" maxlength="4096" required></textarea></label>
+                        <label class="setting-row stacked" for="warningTitle"><span><strong>Warning title</strong><small>Supports {server}, {reason}, and {moderator}</small></span><input type="text" id="warningTitle" maxlength="256" required></label>
+                        <label class="setting-row stacked" for="warningMessage"><span><strong>Warning message</strong><small>Supports {server}, {reason}, and {moderator}</small></span><textarea id="warningMessage" rows="5" maxlength="4096" required></textarea></label>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-row"><span><strong>Kick color</strong><small>Embed accent color</small></span><button class="color-control" type="button" data-color-trigger="kick" aria-label="Change kick color"><span class="color-swatch"></span><output data-color-value="kick">#ED4245</output></button><input id="kickColor" type="hidden" data-color-key="kick" value="#ED4245"></div>
+                        <label class="setting-row stacked" for="kickTitle"><span><strong>Kick title</strong><small>Supports {server}, {reason}, and {moderator}</small></span><input type="text" id="kickTitle" maxlength="256" required></label>
+                        <label class="setting-row stacked" for="kickMessage"><span><strong>Kick message</strong><small>Supports {server}, {reason}, and {moderator}</small></span><textarea id="kickMessage" rows="5" maxlength="4096" required></textarea></label>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-row"><span><strong>Ban color</strong><small>Embed accent color</small></span><button class="color-control" type="button" data-color-trigger="ban" aria-label="Change ban color"><span class="color-swatch"></span><output data-color-value="ban">#ED4245</output></button><input id="banColor" type="hidden" data-color-key="ban" value="#ED4245"></div>
+                        <label class="setting-row stacked" for="banTitle"><span><strong>Ban title</strong><small>Supports {server}, {reason}, and {moderator}</small></span><input type="text" id="banTitle" maxlength="256" required></label>
+                        <label class="setting-row stacked" for="banMessage"><span><strong>Ban message</strong><small>Supports {server}, {reason}, and {moderator}</small></span><textarea id="banMessage" rows="5" maxlength="4096" required></textarea></label>
                     </div>
                 </section>
 
