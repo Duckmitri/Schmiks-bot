@@ -779,3 +779,10 @@ nav a.active .logging-icon {
 nav a.active .infractions-icon::before {
     animation: pulse 1.5s ease-in-out infinite;
 }
+
+/* Stats settings container animation */
+#statsSettingsContainer {
+    overflow: hidden;
+    height: 0;
+    transition: height 0.3s ease;
+}

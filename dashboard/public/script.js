@@ -73,6 +73,20 @@ function getAutoRoleFormValue() {
     };
 }
 
+function getGuildFormValue() {
+    return {
+        guildId: document.getElementById('guildId').value
+    };
+}
+
+function getStatsFormValue() {
+    return {
+        statsEnabled: document.getElementById('statsEnabled').checked,
+        statsChannelId: document.getElementById('statsChannelId').value,
+        statsUpdateInterval: Number(document.getElementById('statsUpdateInterval').value)
+    };
+}
+
 function getCommandPermissionsFormValue() {
     return {
         moderatorCommandPermissions: commandPermissions
@@ -109,24 +123,22 @@ function generateCommandPermissionCheckboxes() {
 
     commandPermissions.forEach(cmd => {
         // Moderator permission checkbox
-        const modContainerInner = document.createElement('div');
+        const modContainerInner = document.createElement('label');
         modContainerInner.className = 'setting-row';
+        modContainerInner.setAttribute('for', `mod-perm-${cmd.name}`);
         modContainerInner.innerHTML = `
             <span>${cmd.description}</span>
-            <div class="toggle-color-group">
-                <input type="checkbox" id="mod-perm-${cmd.name}" data-cmd-key="${cmd.name}">
-            </div>
+            <input type="checkbox" id="mod-perm-${cmd.name}" data-cmd-key="${cmd.name}">
         `;
         modCheckboxesContainer.appendChild(modContainerInner);
 
         // Admin permission checkbox
-        const adminContainerInner = document.createElement('div');
+        const adminContainerInner = document.createElement('label');
         adminContainerInner.className = 'setting-row';
+        adminContainerInner.setAttribute('for', `admin-perm-${cmd.name}`);
         adminContainerInner.innerHTML = `
             <span>${cmd.description}</span>
-            <div class="toggle-color-group">
-                <input type="checkbox" id="admin-perm-${cmd.name}" data-cmd-key="${cmd.name}">
-            </div>
+            <input type="checkbox" id="admin-perm-${cmd.name}" data-cmd-key="${cmd.name}">
         `;
         adminCheckboxesContainer.appendChild(adminContainerInner);
     });
@@ -279,7 +291,7 @@ document.getElementById('configForm').addEventListener('submit', async (e) => {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed, kickEmbed, banEmbed, muteEmbed: getMuteEmbedFormValue(), autoRole: getAutoRoleFormValue().autoRole, ...getCommandPermissionsFormValue() })
+            body: JSON.stringify({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed, kickEmbed, banEmbed, muteEmbed: getMuteEmbedFormValue(), autoRole: getAutoRoleFormValue().autoRole, ...getCommandPermissionsFormValue(), ...getStatsFormValue(), ...getGuildFormValue() })
         });
 
         const data = await response.json();
@@ -334,6 +346,28 @@ async function loadConfig() {
             syncColorValue('mute');
 
             document.getElementById('autoRole').value = config.autoRole || '';
+            document.getElementById('guildId').value = config.guildId || '';
+            document.getElementById('statsEnabled').checked = config.stats?.enabled ?? false;
+            document.getElementById('statsChannelId').value = config.stats?.channelId || '';
+            document.getElementById('statsUpdateInterval').value = config.stats?.updateInterval ?? 60;
+
+            // Show/hide stats settings based on the toggle with animation
+            const statsEnabledCheckbox = document.getElementById('statsEnabled');
+            const statsSettingsContainer = document.getElementById('statsSettingsContainer');
+            if (statsEnabledCheckbox && statsSettingsContainer) {
+                const updateStatsContainerHeight = () => {
+                    if (statsEnabledCheckbox.checked) {
+                        statsSettingsContainer.style.height = statsSettingsContainer.scrollHeight + 'px';
+                    } else {
+                        statsSettingsContainer.style.height = '0';
+                    }
+                };
+
+                // Set initial state
+                updateStatsContainerHeight();
+
+                statsEnabledCheckbox.addEventListener('change', updateStatsContainerHeight);
+            }
 
             // Load command permissions
             if (config.moderatorCommandPermissions) {

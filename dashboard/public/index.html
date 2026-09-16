@@ -45,6 +45,28 @@
                             <input type="text" id="autoRole" name="autoRole" placeholder="Role ID" maxlength="20" inputmode="numeric">
                         </label>
                     </div>
+                    <div class="settings-group">
+                        <label class="setting-row" for="guildId">
+                            <span><strong>Guild ID</strong><small>Server ID where the bot operates (leave blank to use default)</small></span>
+                            <input type="text" id="guildId" name="guildId" placeholder="Guild ID" maxlength="20" inputmode="numeric">
+                        </label>
+                    </div>
+                    <div class="settings-group">
+                        <label class="setting-row" for="statsEnabled">
+                            <span><strong>Stats Update</strong><small>Enable periodic stats channel name updates</small></span>
+                            <input type="checkbox" id="statsEnabled" name="statsEnabled">
+                        </label>
+                        <div id="statsSettingsContainer">
+                            <label class="setting-row" for="statsChannelId">
+                                <span><strong>Stats Channel</strong><small>Channel ID to update with stats (leave blank to disable)</small></span>
+                                <input type="text" id="statsChannelId" name="statsChannelId" placeholder="Channel ID" maxlength="20" inputmode="numeric">
+                            </label>
+                            <label class="setting-row" for="statsUpdateInterval">
+                                <span><strong>Update Interval</strong><small>Seconds between updates (10-3600)</small></span>
+                                <input type="number" id="statsUpdateInterval" name="statsUpdateInterval" min="10" max="3600" value="60">
+                            </label>
+                        </div>
+                    </div>
                 </section>
 
                 <section id="roles" class="settings-section">

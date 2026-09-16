@@ -44,6 +44,9 @@ const defaultMuteEmbed = Object.freeze({
 });
 
 const defaultAutoRole = Object.freeze(''); // Empty string means no auto-role
+const defaultStatsEnabled = false;
+const defaultStatsChannelId = '';
+const defaultStatsUpdateInterval = 60;
 
 const defaultModeratorCommandPermissions = Object.freeze([
   'warn', 'kick', 'mute'  // Moderators can use warning, kick, and mute commands
@@ -266,6 +269,10 @@ function readAutoRoleConfig() {
   return validateAutoRole(typeof autoRole === 'string' ? autoRole : defaultAutoRole);
 }
 
+function readBotOwnerId() {
+  return process.env.BOT_OWNER_ID || '';
+}
+
 function validateRoleIds(roleIds) {
   if (!Array.isArray(roleIds)) throw new TypeError('Role IDs must be an array');
 
@@ -276,7 +283,57 @@ function validateRoleIds(roleIds) {
   return normalized;
 }
 
-function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed, kickEmbed, banEmbed, muteEmbed, moderatorCommandPermissions, adminCommandPermissions, autoRole }) {
+function validateStatsConfig(value) {
+  const stats = value && typeof value === 'object' ? value : {};
+  const enabled = stats.enabled === undefined ? false : stats.enabled;
+  const channelId = stats.channelId === undefined ? '' : stats.channelId;
+  const updateInterval = stats.updateInterval === undefined ? 60 : stats.updateInterval;
+
+  if (typeof enabled !== 'boolean') {
+    throw new TypeError('Stats enabled must be a boolean');
+  }
+  if (typeof channelId !== 'string' || !/^(?:|\d{17,20})$/.test(channelId)) {
+    throw new TypeError('Stats channel ID must be empty or contain 17 to 20 digits');
+  }
+  if (!Number.isInteger(updateInterval) || updateInterval < 10 || updateInterval > 3600) {
+    throw new TypeError('Stats update interval must be a whole number from 10 through 3600 seconds');
+  }
+
+  return { enabled, channelId, updateInterval };
+}
+
+function readStatsConfig() {
+  return validateStatsConfig(readConfig().stats);
+}
+
+function writeStatsConfig({ enabled, channelId, updateInterval }) {
+  const validated = validateStatsConfig({ enabled, channelId, updateInterval });
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, `${JSON.stringify({ ...readConfig(), stats: validated }, null, 2)}\n`);
+  return validated;
+}
+
+function writeGuildIdConfig(guildId) {
+  const validated = validateGuildIdConfig(guildId);
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, `${JSON.stringify({ ...readConfig(), guildId: validated }, null, 2)}\n`);
+  return validated;
+}
+
+function validateGuildIdConfig(value) {
+  const guildId = value && typeof value === 'string' ? value : '';
+  // Guild ID can be empty (use default) or a valid snowflake (17-20 digits)
+  if (guildId !== '' && !/^\d{17,20}$/.test(guildId)) {
+    throw new TypeError('Guild ID must be empty or contain 17 to 20 digits');
+  }
+  return guildId;
+}
+
+function readGuildIdConfig() {
+  return validateGuildIdConfig(readConfig().guildId);
+}
+
+function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed, kickEmbed, banEmbed, muteEmbed, moderatorCommandPermissions, adminCommandPermissions, autoRole, stats }) {
   const saved = {
     prefix: validatePrefix(prefix),
     moderatorRoleIds: validateRoleIds(moderatorRoleIds),
@@ -288,7 +345,8 @@ function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging,
     muteEmbed: validateMuteEmbedConfig(muteEmbed),
     moderatorCommandPermissions: validateCommandPermissions(moderatorCommandPermissions),
     adminCommandPermissions: validateCommandPermissions(adminCommandPermissions),
-    autoRole: validateAutoRole(autoRole)
+    autoRole: validateAutoRole(autoRole),
+    stats: validateStatsConfig(stats)
   };
   const persisted = {
     ...readConfig(),
@@ -302,7 +360,8 @@ function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging,
     muteEmbed: saved.muteEmbed,
     moderatorCommandPermissions: saved.moderatorCommandPermissions,
     adminCommandPermissions: saved.adminCommandPermissions,
-    autoRole: saved.autoRole
+    autoRole: saved.autoRole,
+    stats: saved.stats
   };
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
   fs.writeFileSync(configPath, `${JSON.stringify(persisted, null, 2)}\n`);
@@ -502,8 +561,6 @@ module.exports = {
   validateBanEmbedConfig,
   readMuteEmbedConfig,
   validateMuteEmbedConfig,
-  validateCommandPermissions,
-  readModeratorCommandPermissions,
   readAdminCommandPermissions,
   validateRoleIds,
   writeDashboardConfig,
@@ -512,5 +569,12 @@ module.exports = {
   readReactionCommands,
   readSlashCommands,
   readAutoRoleConfig,
-  validateAutoRole
+  validateAutoRole,
+  readStatsConfig,
+  validateStatsConfig,
+  writeStatsConfig,
+  writeGuildIdConfig,
+  readGuildIdConfig,
+  validateGuildIdConfig,
+  readBotOwnerId
 };

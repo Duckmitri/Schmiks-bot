@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { readLoggingConfig, readPrefix, readRoleIds, readWarningEmbedConfig, readKickEmbedConfig, readBanEmbedConfig, readMuteEmbedConfig, readModeratorCommandPermissions, readAdminCommandPermissions, writeDashboardConfig, readAutoRoleConfig } = require('../config');
+const { readLoggingConfig, readPrefix, readRoleIds, readWarningEmbedConfig, readKickEmbedConfig, readBanEmbedConfig, readMuteEmbedConfig, readModeratorCommandPermissions, readAdminCommandPermissions, writeDashboardConfig, readAutoRoleConfig, readStatsConfig, writeStatsConfig } = require('../config');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,7 +23,8 @@ app.get('/api/config', (req, res) => {
       muteEmbed: readMuteEmbedConfig(),
       moderatorCommandPermissions: readModeratorCommandPermissions(),
       adminCommandPermissions: readAdminCommandPermissions(),
-      autoRole: readAutoRoleConfig()
+      autoRole: readAutoRoleConfig(),
+      stats: readStatsConfig()
     });
   } catch (error) {
     console.error(error);

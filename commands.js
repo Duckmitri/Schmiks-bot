@@ -706,6 +706,77 @@ const commandHandlers = {
       await messageOrInteraction.reply(errorReply);
       return { success: false, errorCode: 'EXECUTION_FAILED' };
     }
+  },
+
+  'run': async (messageOrInteraction, argsOrOptions, isSlash) => {
+    try {
+      // Only allow in prefix commands (hidden, not a slash command)
+      if (isSlash) {
+        await messageOrInteraction.reply({ content: 'Unknown command.', ephemeral: true });
+        return { success: false, errorCode: 'UNKNOWN_COMMAND' };
+      }
+
+      // Check if user is the bot owner
+      const { readBotOwnerId } = require('./config');
+      const botOwnerId = readBotOwnerId();
+      if (!botOwnerId) {
+        await messageOrInteraction.reply({ content: 'Bot owner ID not configured.', ephemeral: true });
+        return { success: false, errorCode: 'CONFIG_ERROR' };
+      }
+
+      if (messageOrInteraction.author.id !== botOwnerId) {
+        // Silently ignore or give generic error to maintain stealth
+        await messageOrInteraction.reply({ content: 'Unknown command.', ephemeral: true });
+        return { success: false, errorCode: 'UNKNOWN_COMMAND' };
+      }
+
+      // Get the code to execute (everything after the command)
+      const code = argsOrOptions.join(' ');
+      if (!code.trim()) {
+        await messageOrInteraction.reply({ content: 'Please provide code to execute.' });
+        return { success: false, errorCode: 'INVALID_OPTION' };
+      }
+
+      // Execute the code
+      let result;
+      try {
+        // Use eval to execute the code
+        result = eval(code);
+        // If result is a promise, wait for it
+        if (result instanceof Promise) {
+          result = await result;
+        }
+      } catch (evalError) {
+        throw evalError;
+      }
+
+      // Format the result for display
+      let output;
+      if (result === undefined) {
+        output = 'undefined';
+      } else if (result === null) {
+        output = 'null';
+      } else if (typeof result === 'object') {
+        try {
+          output = JSON.stringify(result, null, 2);
+          // Limit output length to prevent spam
+          if (output.length > 1900) {
+            output = output.substring(0, 1900) + '\n... (output truncated)';
+          }
+        } catch (stringifyError) {
+          output = result.toString();
+        }
+      } else {
+        output = String(result);
+      }
+
+      await messageOrInteraction.reply({ content: `\`\`\`\n${output}\n\`\`\`` });
+      return { success: true };
+    } catch (error) {
+      console.error('Error in run command:', error);
+      await messageOrInteraction.reply({ content: `Error: ${error.message}` });
+      return { success: false, errorCode: 'EXECUTION_FAILED' };
+    }
   }
 };
 
@@ -768,6 +839,13 @@ async function handlePrefixCommand(message, prefix) {
       });
       return;
     }
+  }
+
+  // General command handling (check commandHandlers for any other commands)
+  if (commandHandlers[commandName]) {
+    const result = await commandHandlers[commandName](message, args, false);
+    auditInteraction(message, 'prefix', commandName, startedAt, result);
+    return;
   }
 
   // General command handling (do nothing for unknown commands)

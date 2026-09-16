@@ -4,7 +4,7 @@ if (process.noDeprecation === undefined) {
 }
 
 const { Client, GatewayIntentBits, Partials, PermissionFlagsBits } = require('discord.js');
-const { readPrefix, readRoleIds, readSlashCommands } = require('./config');
+const { readPrefix, readRoleIds, readSlashCommands, readStatsConfig, readGuildIdConfig } = require('./config');
 const { createRateLimiter } = require('./rate-limit');
 const {
   handleButtonInteraction,
@@ -61,7 +61,7 @@ client.once('ready', async () => {
     if (commands.length === 0) {
       console.warn('No slash commands to register!');
     }
-    const guildId = process.env.GUILD_ID;
+    const guildId = readGuildIdConfig();
     if (guildId) {
       // Register commands to a specific guild (for instant updates)
       const guild = await client.guilds.fetch(guildId);
@@ -75,6 +75,57 @@ client.once('ready', async () => {
   } catch (error) {
     console.error('Error registering slash commands:', error);
   }
+  // Stats channel update
+  let statsInterval = null;
+  const startStatsUpdate = () => {
+    const stats = readStatsConfig();
+    if (stats.enabled && stats.channelId) {
+      const intervalMs = stats.updateInterval * 1000;
+      statsInterval = setInterval(async () => {
+        try {
+          const currentStats = readStatsConfig();
+          if (!currentStats.enabled || !currentStats.channelId) {
+            clearInterval(statsInterval);
+            statsInterval = null;
+            return;
+          }
+          const guildId = readGuildIdConfig();
+          if (!guildId) {
+            console.warn('Stats update: GUILD_ID not set');
+            clearInterval(statsInterval);
+            statsInterval = null;
+            return;
+          }
+          const guild = await client.guilds.fetch(guildId);
+          const channel = await guild.channels.fetch(currentStats.channelId);
+          if (!channel) {
+            console.warn('Stats update: Channel not found');
+            clearInterval(statsInterval);
+            statsInterval = null;
+            return;
+          }
+          const memberCount = guild.memberCount;
+          const botCount = guild.members.cache.filter(m => m.user.bot).size;
+          const newName = `Members: ${memberCount} | Bots: ${botCount}`;
+          if (channel.name !== newName) {
+            await channel.setName(newName);
+            console.log(`Updated stats channel to: ${newName}`);
+          }
+        } catch (error) {
+          console.error('Error updating stats channel:', error);
+          clearInterval(statsInterval);
+          statsInterval = null;
+        }
+      }, intervalMs);
+      console.log(`Stats update started, interval: ${stats.updateInterval}s`);
+    } else {
+      console.log('Stats update disabled or no channel ID set');
+    }
+  };
+
+  // Start stats update if enabled
+  startStatsUpdate();
+
 });
 
 client.on('messageCreate', async message => {
