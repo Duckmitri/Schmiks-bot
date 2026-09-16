@@ -37,6 +37,21 @@ const defaultBanEmbed = Object.freeze({
   message: '{reason}\n\nModerator: {moderator}'
 });
 
+const defaultMuteEmbed = Object.freeze({
+  color: '#ED4245',
+  title: 'Muted from {server}',
+  message: '{reason}\n\nModerator: {moderator}'
+});
+
+const defaultAutoRole = Object.freeze(''); // Empty string means no auto-role
+
+const defaultModeratorCommandPermissions = Object.freeze([
+  'warn', 'kick', 'mute'  // Moderators can use warning, kick, and mute commands
+]);
+const defaultAdminCommandPermissions = Object.freeze([
+  'kick', 'ban', 'mute', 'warn', 'infractions', 'logs', 'addrole', 'removerole', 'setnick', 'audit'  // Admins can use all commands
+]);
+
 function readConfig() {
   try {
     return JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -181,6 +196,76 @@ function readBanEmbedConfig() {
   return validateBanEmbedConfig(readConfig().banEmbed);
 }
 
+function validateMuteEmbedConfig(value) {
+  const muteEmbed = value && typeof value === 'object' ? value : defaultMuteEmbed;
+  const color = muteEmbed.color === undefined ? defaultMuteEmbed.color : muteEmbed.color;
+  const title = muteEmbed.title === undefined ? defaultMuteEmbed.title : muteEmbed.title;
+  const message = muteEmbed.message === undefined ? defaultMuteEmbed.message : muteEmbed.message;
+
+  if (typeof color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color)) {
+    throw new TypeError('Mute embed color must use #RRGGBB format');
+  }
+  if (typeof title !== 'string' || !title.trim()) {
+    throw new TypeError('Mute embed title must be a nonblank string');
+  }
+  if (typeof message !== 'string' || !message.trim()) {
+    throw new TypeError('Mute embed message must be a nonblank string');
+  }
+
+  return {
+    color: color.toUpperCase(),
+    title: title.trim().slice(0, 256),
+    message: message.trim().slice(0, 4096)
+  };
+}
+
+function readMuteEmbedConfig() {
+  return validateMuteEmbedConfig(readConfig().muteEmbed);
+}
+
+function validateCommandPermissions(permissions) {
+  if (!Array.isArray(permissions)) throw new TypeError('Command permissions must be an array');
+
+  const validCommands = ['kick', 'ban', 'mute', 'warn', 'infractions', 'logs', 'addrole', 'removerole', 'setnick', 'audit'];
+
+  const normalized = [...new Set(permissions.map(cmd => typeof cmd === 'string' ? cmd.trim().toLowerCase() : cmd))];
+
+  if (normalized.some(cmd => typeof cmd !== 'string' || !validCommands.includes(cmd))) {
+    throw new TypeError(`Each command must be one of: ${validCommands.join(', ')}`);
+  }
+
+  return normalized;
+}
+
+function readModeratorCommandPermissions() {
+  const moderatorCommandPermissions = readConfig().moderatorCommandPermissions;
+  return validateCommandPermissions(Array.isArray(moderatorCommandPermissions) ? moderatorCommandPermissions : defaultModeratorCommandPermissions);
+}
+
+function readAdminCommandPermissions() {
+  const adminCommandPermissions = readConfig().adminCommandPermissions;
+  return validateCommandPermissions(Array.isArray(adminCommandPermissions) ? adminCommandPermissions : defaultAdminCommandPermissions);
+}
+
+function validateAutoRole(role) {
+  // Auto-role can be empty string (disabled) or a valid role ID
+  if (typeof role !== 'string') {
+    throw new TypeError('Auto-role must be a string');
+  }
+
+  // If not empty, validate it's a proper role ID
+  if (role.trim() !== '' && !/^\d{17,20}$/.test(role.trim())) {
+    throw new TypeError('Auto-role ID must contain 17 to 20 digits');
+  }
+
+  return role.trim();
+}
+
+function readAutoRoleConfig() {
+  const autoRole = readConfig().autoRole;
+  return validateAutoRole(typeof autoRole === 'string' ? autoRole : defaultAutoRole);
+}
+
 function validateRoleIds(roleIds) {
   if (!Array.isArray(roleIds)) throw new TypeError('Role IDs must be an array');
 
@@ -191,7 +276,7 @@ function validateRoleIds(roleIds) {
   return normalized;
 }
 
-function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed, kickEmbed, banEmbed }) {
+function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed, kickEmbed, banEmbed, muteEmbed, moderatorCommandPermissions, adminCommandPermissions, autoRole }) {
   const saved = {
     prefix: validatePrefix(prefix),
     moderatorRoleIds: validateRoleIds(moderatorRoleIds),
@@ -199,7 +284,11 @@ function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging,
     logging: validateLoggingConfig(logging),
     warningEmbed: validateWarningEmbedConfig(warningEmbed),
     kickEmbed: validateKickEmbedConfig(kickEmbed),
-    banEmbed: validateBanEmbedConfig(banEmbed)
+    banEmbed: validateBanEmbedConfig(banEmbed),
+    muteEmbed: validateMuteEmbedConfig(muteEmbed),
+    moderatorCommandPermissions: validateCommandPermissions(moderatorCommandPermissions),
+    adminCommandPermissions: validateCommandPermissions(adminCommandPermissions),
+    autoRole: validateAutoRole(autoRole)
   };
   const persisted = {
     ...readConfig(),
@@ -209,7 +298,11 @@ function writeDashboardConfig({ prefix, moderatorRoleIds, adminRoleIds, logging,
     logging: saved.logging,
     warningEmbed: saved.warningEmbed,
     kickEmbed: saved.kickEmbed,
-    banEmbed: saved.banEmbed
+    banEmbed: saved.banEmbed,
+    muteEmbed: saved.muteEmbed,
+    moderatorCommandPermissions: saved.moderatorCommandPermissions,
+    adminCommandPermissions: saved.adminCommandPermissions,
+    autoRole: saved.autoRole
   };
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
   fs.writeFileSync(configPath, `${JSON.stringify(persisted, null, 2)}\n`);
@@ -315,6 +408,29 @@ function addBuiltInSlashCommands(commands) {
       .setDescription('Reason for banning')
       .setRequired(true));
 
+  const muteCommand = new SlashCommandBuilder()
+    .setName('mute')
+    .setDescription('Mute a member')
+    .addUserOption(option => option
+      .setName('target')
+      .setDescription('Member to mute')
+      .setRequired(true))
+    .addStringOption(option => option
+      .setName('length')
+      .setDescription('Mute length (1m, 1h, 1d, 1w, 1mo)')
+      .setRequired(true)
+      .addChoices(
+        { name: '1 minute', value: '1m' },
+        { name: '1 hour', value: '1h' },
+        { name: '1 day', value: '1d' },
+        { name: '1 week', value: '1w' },
+        { name: '1 month', value: '1mo' }
+      ))
+    .addStringOption(option => option
+      .setName('reason')
+      .setDescription('Reason for muting')
+      .setRequired(true));
+
   const logsCommand = new SlashCommandBuilder()
     .setName('logs')
     .setDescription('View server logs')
@@ -349,9 +465,10 @@ function addBuiltInSlashCommands(commands) {
       .setRequired(true));
 
   return [
-    ...commands.filter(command => !['logs', 'kick', 'ban', 'warn', 'infractions'].includes(command.name)),
+    ...commands.filter(command => !['logs', 'kick', 'ban', 'mute', 'warn', 'infractions'].includes(command.name)),
     kickCommand.toJSON(),
     banCommand.toJSON(),
+    muteCommand.toJSON(),
     warnCommand.toJSON(),
     infractionsCommand.toJSON(),
     logsCommand.toJSON()
@@ -383,10 +500,17 @@ module.exports = {
   validateKickEmbedConfig,
   readBanEmbedConfig,
   validateBanEmbedConfig,
+  readMuteEmbedConfig,
+  validateMuteEmbedConfig,
+  validateCommandPermissions,
+  readModeratorCommandPermissions,
+  readAdminCommandPermissions,
   validateRoleIds,
   writeDashboardConfig,
   readRoleIds,
   readLinks,
   readReactionCommands,
-  readSlashCommands
+  readSlashCommands,
+  readAutoRoleConfig,
+  validateAutoRole
 };

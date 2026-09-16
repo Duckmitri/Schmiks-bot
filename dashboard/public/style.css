@@ -67,11 +67,56 @@ nav a.active { color: #fff; background: var(--accent); }
     font-size: 13px;
     line-height: 1;
 }
-.roles-icon { background: #af52de; }
+/* General icon spin animation on hover */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.general-icon img {
+    filter: brightness(0) invert(1);
+}
+
+nav a.active .general-icon img {
+    filter: brightness(0);
+}
+
+nav a:hover .general-icon img {
+    animation: spin 3s linear infinite;
+}
+.roles-icon { background: #34c759; }
+.roles-icon img {
+    filter: brightness(0) invert(1);
+}
+
+nav a.active .roles-icon img {
+    filter: brightness(0);
+}
+
+nav a:hover .roles-icon img {
+    animation: wiggle 0.5s ease-in-out infinite;
+}
+nav a:hover .infractions-icon::before {
+    animation: pulse 1.5s ease-in-out infinite;
+}
 .appearance-icon { background: #9b59b6; }
-.logging-icon { background: #34c759; }
+.logging-icon { background: #9b59b6; font-weight: 900; font-size: 18px; position: relative; }
+.logging-icon::before {
+    content: "_";
+    position: absolute;
+    top: calc(50% - 12px);
+    left: 50%;
+    transform: translateX(-50%);
+}
 .colors-icon { background: #ff9500; }
-.infractions-icon { background: #ff3b30; }
+.infractions-icon { background: #ff3b30; position: relative; }
+.infractions-icon::before {
+    content: "!";
+    font-weight: 900;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
 nav a.active .nav-icon { color: var(--accent); background: #fff; }
 .local-note { display: flex; align-items: center; gap: 7px; margin: auto 10px 0; color: var(--secondary); font-size: 12px; }
 .local-note span, .status-pill span { width: 7px; height: 7px; border-radius: 50%; background: #34c759; box-shadow: 0 0 0 3px rgba(52, 199, 89, .15); }
@@ -229,5 +274,118 @@ input[type="checkbox"]:focus-visible { outline: 3px solid rgba(0, 122, 255, .35)
 }
 @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    *, *::before { transition: none !important; }
+    *, *::before {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* Logging icon blink animation on hover - only the underline (text) blinks */
+@keyframes blinkUnderline {
+    0%, 50% { color: #fff; }
+    51%, 100% { color: #9b59b6; }
+}
+
+/* Permissions icon wiggle animation on hover */
+@keyframes wiggle {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(5deg); }
+    50% { transform: rotate(0deg); }
+    75% { transform: rotate(-5deg); }
+    100% { transform: rotate(0deg); }
+}
+
+/* Infractions icon pulse animation on hover */
+@keyframes pulse {
+    0% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.3); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+nav a:hover .logging-icon {
+    animation: blinkUnderline 1s step-start infinite;
+}
+
+/* Permissions section styles */
+.input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.input-group input[type="text"] {
+    flex: 1;
+    min-width: 150px;
+    padding: 7px 10px;
+    color: var(--text);
+    background: var(--field);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    outline: none;
+}
+
+.input-group input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, .16);
+}
+
+.input-group button {
+    min-width: 80px;
+    padding: 9px 18px;
+    color: #fff;
+    background: var(--accent);
+    border: 0;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.input-group button:hover {
+    filter: brightness(.94);
+}
+
+.input-group button:active {
+    transform: scale(.98);
+}
+
+.role-list {
+    margin-top: 8px;
+    padding: 10px;
+    border: 1px solid var(--separator);
+    border-radius: 8px;
+    background: var(--field);
+    min-height: 40px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.role-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: var(--accent);
+    color: white;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.role-tag .remove-role {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.role-tag .remove-role:hover {
+    background: rgba(0,0,0,0.2);
 }

@@ -7,7 +7,19 @@ const deliveryKeys = [
     'voiceJoin',
     'voiceLeave'
 ];
-const colorKeys = [...deliveryKeys, 'warning', 'kick', 'ban'];
+const colorKeys = [...deliveryKeys, 'warning', 'mute', 'kick', 'ban'];
+const commandPermissions = [
+    { name: 'kick', description: 'Kick a member' },
+    { name: 'ban', description: 'Ban a member' },
+    { name: 'mute', description: 'Mute a member' },
+    { name: 'warn', description: 'Warn a member' },
+    { name: 'infractions', description: 'View a member\'s infraction history' },
+    { name: 'logs', description: 'View server logs' },
+    { name: 'addrole', description: 'Add a role to a member' },
+    { name: 'removerole', description: 'Remove a role from a member' },
+    { name: 'setnick', description: 'Set a member\'s nickname' },
+    { name: 'audit', description: 'Audit log' }
+];
 
 function getLoggingFormValue() {
     const delivery = Object.fromEntries(deliveryKeys.map(key => [
@@ -51,6 +63,31 @@ function getBanEmbedFormValue() {
     };
 }
 
+function getMuteEmbedFormValue() {
+    return {
+        color: document.getElementById('muteColor').value.toUpperCase(),
+        title: document.getElementById('muteTitle').value,
+        message: document.getElementById('muteMessage').value
+    };
+}
+
+function getAutoRoleFormValue() {
+    return {
+        autoRole: document.getElementById('autoRole').value
+    };
+}
+
+function getCommandPermissionsFormValue() {
+    return {
+        moderatorCommandPermissions: commandPermissions
+            .filter(cmd => document.getElementById(`mod-perm-${cmd.name}`).checked)
+            .map(cmd => cmd.name),
+        adminCommandPermissions: commandPermissions
+            .filter(cmd => document.getElementById(`admin-perm-${cmd.name}`).checked)
+            .map(cmd => cmd.name)
+    };
+}
+
 function syncColorValue(key) {
     const input = document.querySelector(`[data-color-key="${key}"]`);
     const value = input.value.toUpperCase();
@@ -60,7 +97,88 @@ function syncColorValue(key) {
 }
 
 function getRoleIds(id) {
-    return document.getElementById(id).value.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+    return document.getElementById(id).value.split(',').filter(Boolean);
+}
+
+function generateCommandPermissionCheckboxes() {
+    const modContainer = document.getElementById('moderatorCommandPermissions');
+    const adminContainer = document.getElementById('adminCommandPermissions');
+
+    modContainer.innerHTML = '';
+    adminContainer.innerHTML = '';
+
+    commandPermissions.forEach(cmd => {
+        // Moderator permission checkbox
+        const modContainerInner = document.createElement('div');
+        modContainerInner.className = 'setting-row';
+        modContainerInner.innerHTML = `
+            <span>${cmd.description}</span>
+            <div class="toggle-color-group">
+                <input type="checkbox" id="mod-perm-${cmd.name}" data-cmd-key="${cmd.name}">
+            </div>
+        `;
+        modContainer.appendChild(modContainerInner);
+
+        // Admin permission checkbox
+        const adminContainerInner = document.createElement('div');
+        adminContainerInner.className = 'setting-row';
+        adminContainerInner.innerHTML = `
+            <span>${cmd.description}</span>
+            <div class="toggle-color-group">
+                <input type="checkbox" id="admin-perm-${cmd.name}" data-cmd-key="${cmd.name}">
+            </div>
+        `;
+        adminContainer.appendChild(adminContainerInner);
+    });
+}
+
+function updateRoleList(inputId, listId) {
+    const input = document.getElementById(inputId);
+    const listContainer = document.getElementById(listId);
+    const roleIds = input.value.split(',').filter(Boolean);
+
+    listContainer.innerHTML = '';
+
+    roleIds.forEach(roleId => {
+        const roleTag = document.createElement('div');
+        roleTag.className = 'role-tag';
+        roleTag.innerHTML = `
+            <span>${roleId.trim()}</span>
+            <button class="remove-role" data-role-id="${roleId.trim()}">&times;</button>
+        `;
+        listContainer.appendChild(roleTag);
+    });
+
+    // Add event listeners to remove buttons
+    listContainer.querySelectorAll('.remove-role').forEach(button => {
+        button.addEventListener('click', () => {
+            const roleIdToRemove = button.getAttribute('data-role-id');
+            const currentIds = input.value.split(',').filter(id => id.trim() !== roleIdToRemove);
+            input.value = currentIds.join(',');
+            updateRoleList(inputId, listId);
+        });
+    });
+}
+
+function addRoleToList(roleIdInputId, roleListInputId, listContainerId) {
+    const roleIdInput = document.getElementById(roleIdInputId);
+    const roleListInput = document.getElementById(roleListInputId);
+    const roleId = roleIdInput.value.trim();
+
+    if (roleId) {
+        // Check if it's a valid Discord role ID (18-19 digits)
+        if (/^\d{17,19}$/.test(roleId)) {
+            const currentIds = roleListInput.value.split(',').filter(Boolean);
+            if (!currentIds.includes(roleId)) {
+                currentIds.push(roleId);
+                roleListInput.value = currentIds.join(',');
+                updateRoleList(roleListInputId, listContainerId);
+                roleIdInput.value = '';
+            }
+        } else {
+            alert('Please enter a valid Discord role ID (17-19 digits)');
+        }
+    }
 }
 
 const colorPopover = document.getElementById('colorPopover');
@@ -155,7 +273,7 @@ document.getElementById('configForm').addEventListener('submit', async (e) => {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed, kickEmbed, banEmbed })
+            body: JSON.stringify({ prefix, moderatorRoleIds, adminRoleIds, logging, warningEmbed, kickEmbed, banEmbed, muteEmbed: getMuteEmbedFormValue(), autoRole: getAutoRoleFormValue().autoRole, ...getCommandPermissionsFormValue() })
         });
 
         const data = await response.json();
@@ -182,8 +300,11 @@ async function loadConfig() {
         if (response.ok) {
             const config = await response.json();
             document.getElementById('prefix').value = config.prefix || '';
-            document.getElementById('moderatorRoleIds').value = config.moderatorRoleIds.join('\n');
-            document.getElementById('adminRoleIds').value = config.adminRoleIds.join('\n');
+            document.getElementById('moderatorRoleIds').value = config.moderatorRoleIds.join(',');
+            document.getElementById('adminRoleIds').value = config.adminRoleIds.join(',');
+            // Update the role lists display
+            updateRoleList('moderatorRoleIds', 'moderatorRolesList');
+            updateRoleList('adminRoleIds', 'adminRolesList');
             document.getElementById('loggingChannelId').value = config.logging.channelId;
             document.getElementById('retentionDays').value = config.logging.retentionDays;
             document.getElementById('warningTitle').value = config.warningEmbed.title;
@@ -200,6 +321,28 @@ async function loadConfig() {
             document.getElementById('banMessage').value = config.banEmbed.message;
             document.getElementById('banColor').value = config.banEmbed.color;
             syncColorValue('ban');
+
+            document.getElementById('muteTitle').value = config.muteEmbed.title;
+            document.getElementById('muteMessage').value = config.muteEmbed.message;
+            document.getElementById('muteColor').value = config.muteEmbed.color;
+            syncColorValue('mute');
+
+            document.getElementById('autoRole').value = config.autoRole || '';
+
+            // Load command permissions
+            if (config.moderatorCommandPermissions) {
+                config.moderatorCommandPermissions.forEach(cmd => {
+                    const checkbox = document.getElementById(`mod-perm-${cmd}`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+            if (config.adminCommandPermissions) {
+                config.adminCommandPermissions.forEach(cmd => {
+                    const checkbox = document.getElementById(`admin-perm-${cmd}`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+
             for (const key of deliveryKeys) {
                 document.querySelector(`[data-delivery-key="${key}"]`).checked = config.logging.delivery[key];
                 document.querySelector(`[data-color-key="${key}"]`).value = config.logging.colors[key];
@@ -210,6 +353,28 @@ async function loadConfig() {
         console.error('Failed to load config:', err);
     }
 }
+
+// Add event listeners for add role buttons
+document.getElementById('addModeratorRole').addEventListener('click', () => {
+    addRoleToList('moderatorRoleIdInput', 'moderatorRoleIds', 'moderatorRolesList');
+});
+
+document.getElementById('addAdminRole').addEventListener('click', () => {
+    addRoleToList('adminRoleIdInput', 'adminRoleIds', 'adminRolesList');
+});
+
+// Also allow pressing Enter in the input fields to add the role
+document.getElementById('moderatorRoleIdInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        addRoleToList('moderatorRoleIdInput', 'moderatorRoleIds', 'moderatorRolesList');
+    }
+});
+
+document.getElementById('adminRoleIdInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        addRoleToList('adminRoleIdInput', 'adminRoleIds', 'adminRolesList');
+    }
+});
 
 // Navigation handling
 function setupNavigation() {
@@ -284,5 +449,6 @@ function setupNavigation() {
 // Add setupNavigation to be called on load
 window.addEventListener('load', () => {
   setupNavigation();
+  generateCommandPermissionCheckboxes();
   loadConfig();
 });

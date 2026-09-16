@@ -16,10 +16,10 @@
                 <div><strong>Schmiks</strong><span>Bot settings</span></div>
             </div>
             <nav aria-label="Configuration sections">
-                <a href="#general"><span class="nav-icon general-icon" aria-hidden="true">⚙</span>General</a>
-                <a href="#roles"><span class="nav-icon roles-icon" aria-hidden="true">♙</span>Permissions</a>
-                <a href="#appearance"><span class="nav-icon appearance-icon" aria-hidden="true">◑</span>Appearance</a>
-                <a href="#infractions"><span class="nav-icon infractions-icon" aria-hidden="true">!</span>Infractions</a>
+                <a href="#general"><span class="nav-icon general-icon" aria-hidden="true"><img src="/images/gear-icon.png" width="24" height="24" alt=""></span>General</a>
+                <a href="#roles"><span class="nav-icon roles-icon" aria-hidden="true"><img src="/images/key-icon.svg" width="16" height="16" alt=""></span>Permissions</a>
+                <a href="#logging"><span class="nav-icon logging-icon" aria-hidden="true"></span>Logging</a>
+                <a href="#infractions"><span class="nav-icon infractions-icon" aria-hidden="true"></span>Infractions</a>
             </nav>
             <p class="local-note"><span></span>Local dashboard</p>
         </aside>
@@ -39,25 +39,63 @@
                             <input type="text" id="prefix" name="prefix" placeholder="!" maxlength="5" required>
                         </label>
                     </div>
+                    <div class="settings-group">
+                        <label class="setting-row" for="autoRole">
+                            <span><strong>Auto-role</strong><small>Role ID to give to new members (leave blank to disable)</small></span>
+                            <input type="text" id="autoRole" name="autoRole" placeholder="Role ID" maxlength="20" inputmode="numeric">
+                        </label>
+                    </div>
                 </section>
 
                 <section id="roles" class="settings-section">
                     <div class="section-heading"><h2>Permissions</h2><p>Set which roles can use moderation and admin commands.</p></div>
                     <fieldset class="settings-group">
                         <legend class="visually-hidden">Permissions</legend>
-                        <label class="setting-row stacked" for="moderatorRoleIds">
+                        <div class="setting-row">
                             <span><strong>Moderator roles</strong><small>Can use moderation commands</small></span>
-                            <textarea id="moderatorRoleIds" name="moderatorRoleIds" rows="3" placeholder="One role ID per line"></textarea>
-                        </label>
-                        <label class="setting-row stacked" for="adminRoleIds">
-                            <span><strong>Administrator roles</strong><small>Can also use moderator commands</small></span>
-                            <textarea id="adminRoleIds" name="adminRoleIds" rows="3" placeholder="One role ID per line"></textarea>
-                        </label>
+                            <div class="input-group">
+                                <input type="text" id="moderatorRoleIdInput" placeholder="Enter role ID" maxlength="20">
+                                <button type="button" id="addModeratorRole">Add Role</button>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span><strong>Current Moderator Roles</strong></span>
+                            <div id="moderatorRolesList" class="role-list"></div>
+                        </div>
+                        <div class="setting-row">
+                            <span><strong>Administrator roles</strong><small>Can also use moderation commands</small></span>
+                            <div class="input-group">
+                                <input type="text" id="adminRoleIdInput" placeholder="Enter role ID" maxlength="20">
+                                <button type="button" id="addAdminRole">Add Role</button>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span><strong>Current Administrator Roles</strong></span>
+                            <div id="adminRolesList" class="role-list"></div>
+                        </div>
+                        <input type="hidden" id="moderatorRoleIds" name="moderatorRoleIds">
+                        <input type="hidden" id="adminRoleIds" name="adminRoleIds">
+                    </fieldset>
+
+                    <fieldset class="settings-group">
+                        <legend class="visually-hidden">Command Permissions</legend>
+                        <div class="setting-row">
+                                <span><strong>Moderator Command Permissions</strong><small>Select which commands moderators can use</small></span>
+                                <div id="moderatorCommandPermissions">
+                                    <!-- Checkboxes will be dynamically generated by JavaScript -->
+                                </div>
+                            </div>
+                            <div class="setting-row">
+                                <span><strong>Administrator Command Permissions</strong><small>Select which commands administrators can use</small></span>
+                                <div id="adminCommandPermissions">
+                                    <!-- Checkboxes will be dynamically generated by JavaScript -->
+                                </div>
+                            </div>
                     </fieldset>
                 </section>
 
-                <section id="appearance" class="settings-section">
-                    <div class="section-heading"><h2>Appearance</h2><p>Customize logging and visual settings.</p></div>
+                <section id="logging" class="settings-section">
+                    <div class="section-heading"><h2>Logging</h2><p>Customize logging and visual settings.</p></div>
                     <fieldset class="settings-group">
                         <legend class="visually-hidden">Logging</legend>
                         <label class="setting-row" for="loggingChannelId">
@@ -130,6 +168,11 @@
                         <div class="setting-row"><span><strong>Warning color</strong><small>Embed accent color</small></span><button class="color-control" type="button" data-color-trigger="warning" aria-label="Change warning color"><span class="color-swatch"></span><output data-color-value="warning">#FEE75C</output></button><input id="warningColor" type="hidden" data-color-key="warning" value="#FEE75C"></div>
                         <label class="setting-row stacked" for="warningTitle"><span><strong>Warning title</strong><small>Supports {server}, {reason}, and {moderator}</small></span><input type="text" id="warningTitle" maxlength="256" required></label>
                         <label class="setting-row stacked" for="warningMessage"><span><strong>Warning message</strong><small>Supports {server}, {reason}, and {moderator}</small></span><textarea id="warningMessage" rows="5" maxlength="4096" required></textarea></label>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-row"><span><strong>Mute color</strong><small>Embed accent color</small></span><button class="color-control" type="button" data-color-trigger="mute" aria-label="Change mute color"><span class="color-swatch"></span><output data-color-value="mute">#ED4245</output></button><input id="muteColor" type="hidden" data-color-key="mute" value="#ED4245"></div>
+                        <label class="setting-row stacked" for="muteTitle"><span><strong>Mute title</strong><small>Supports {server}, {reason}, and {moderator}</small></span><input type="text" id="muteTitle" maxlength="256" required></label>
+                        <label class="setting-row stacked" for="muteMessage"><span><strong>Mute message</strong><small>Supports {server}, {reason}, and {moderator}</small></span><textarea id="muteMessage" rows="5" maxlength="4096" required></textarea></label>
                     </div>
                     <div class="settings-group">
                         <div class="setting-row"><span><strong>Kick color</strong><small>Embed accent color</small></span><button class="color-control" type="button" data-color-trigger="kick" aria-label="Change kick color"><span class="color-swatch"></span><output data-color-value="kick">#ED4245</output></button><input id="kickColor" type="hidden" data-color-key="kick" value="#ED4245"></div>

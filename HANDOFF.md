@@ -17,6 +17,21 @@
 - `database.js` creates `infractions(id, occurred_at, guild_id, target_user_id, moderator_user_id, type, reason)` plus `infractions_guild_target_idx`. `type` is constrained to `warn` or `kick`.
 - Event retention deletes from `command_events`, `message_events`, `general_events`, and `message_snapshots` only. Infractions are permanent unless an operator deletes them directly.
 
+## Dashboard UI Updates
+
+- General section icon replaced with gear-icon.png (white by default)
+- General icon inverts to black when selected (active state)
+- General icon spins continuously on hover
+- Permissions section icon replaced with key-icon.svg (white by default)
+- Permissions icon inverts to black when selected (active state)
+- Permissions icon wiggles (±5° rotation) on hover
+- Logging section icon: purple background with bold underline that blinks on hover (underline only, not background)
+- Logging icon underline positioned 12px above vertical center
+- Infractions section icon: red background with bold exclamation mark that pulses (scales) on hover (exclamation mark only, not background)
+- Infractions icon exclamation mark pulses to 130% size on hover
+- Infractions icon exclamation mark remains centered during pulse animation
+- All animations respect user's preference for reduced motion
+
 ## Verification boundary
 
 - Run `npm run check` for JavaScript syntax checks and the complete automated test suite.
