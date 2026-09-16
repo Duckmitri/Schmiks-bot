@@ -10,3 +10,5 @@ npm-debug.log*
 data/*.db
 data/*.db-wal
 data/*.db-shm
+test/
+.remember/

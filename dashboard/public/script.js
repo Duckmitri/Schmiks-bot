@@ -14,11 +14,7 @@ const commandPermissions = [
     { name: 'mute', description: 'Mute a member' },
     { name: 'warn', description: 'Warn a member' },
     { name: 'infractions', description: 'View a member\'s infraction history' },
-    { name: 'logs', description: 'View server logs' },
-    { name: 'addrole', description: 'Add a role to a member' },
-    { name: 'removerole', description: 'Remove a role from a member' },
-    { name: 'setnick', description: 'Set a member\'s nickname' },
-    { name: 'audit', description: 'Audit log' }
+    { name: 'logs', description: 'View server logs' }
 ];
 
 function getLoggingFormValue() {
@@ -101,11 +97,15 @@ function getRoleIds(id) {
 }
 
 function generateCommandPermissionCheckboxes() {
-    const modContainer = document.getElementById('moderatorCommandPermissions');
-    const adminContainer = document.getElementById('adminCommandPermissions');
+    const container = document.getElementById('commandPermissionsContainer');
+    container.innerHTML = '';
 
-    modContainer.innerHTML = '';
-    adminContainer.innerHTML = '';
+    // Create moderator checkboxes container
+    const modCheckboxesContainer = document.createElement('div');
+    modCheckboxesContainer.id = 'moderatorCheckboxesContainer';
+    // Create administrator checkboxes container
+    const adminCheckboxesContainer = document.createElement('div');
+    adminCheckboxesContainer.id = 'adminCheckboxesContainer';
 
     commandPermissions.forEach(cmd => {
         // Moderator permission checkbox
@@ -117,7 +117,7 @@ function generateCommandPermissionCheckboxes() {
                 <input type="checkbox" id="mod-perm-${cmd.name}" data-cmd-key="${cmd.name}">
             </div>
         `;
-        modContainer.appendChild(modContainerInner);
+        modCheckboxesContainer.appendChild(modContainerInner);
 
         // Admin permission checkbox
         const adminContainerInner = document.createElement('div');
@@ -128,8 +128,14 @@ function generateCommandPermissionCheckboxes() {
                 <input type="checkbox" id="admin-perm-${cmd.name}" data-cmd-key="${cmd.name}">
             </div>
         `;
-        adminContainer.appendChild(adminContainerInner);
+        adminCheckboxesContainer.appendChild(adminContainerInner);
     });
+
+    container.appendChild(modCheckboxesContainer);
+    container.appendChild(adminCheckboxesContainer);
+
+    // By default, show moderator and hide administrator
+    adminCheckboxesContainer.style.display = 'none';
 }
 
 function updateRoleList(inputId, listId) {
@@ -343,6 +349,31 @@ async function loadConfig() {
                 });
             }
 
+            // Set initial view based on which permissions exist
+            const modContainer = document.getElementById('moderatorCheckboxesContainer');
+            const adminContainer = document.getElementById('adminCheckboxesContainer');
+            const permissionTypeSelect = document.getElementById('permissionTypeSelect');
+            if (permissionTypeSelect && modContainer && adminContainer) {
+                const hasModPerms = config.moderatorCommandPermissions && config.moderatorCommandPermissions.length > 0;
+                const hasAdminPerms = config.adminCommandPermissions && config.adminCommandPermissions.length > 0;
+
+                // If only one type has permissions, show that view; otherwise default to moderator
+                if (hasModPerms && !hasAdminPerms) {
+                    permissionTypeSelect.value = 'moderator';
+                    modContainer.style.display = 'block';
+                    adminContainer.style.display = 'none';
+                } else if (!hasModPerms && hasAdminPerms) {
+                    permissionTypeSelect.value = 'administrator';
+                    modContainer.style.display = 'none';
+                    adminContainer.style.display = 'block';
+                } else {
+                    // Default to moderator (existing behavior)
+                    permissionTypeSelect.value = 'moderator';
+                    modContainer.style.display = 'block';
+                    adminContainer.style.display = 'none';
+                }
+            }
+
             for (const key of deliveryKeys) {
                 document.querySelector(`[data-delivery-key="${key}"]`).checked = config.logging.delivery[key];
                 document.querySelector(`[data-color-key="${key}"]`).value = config.logging.colors[key];
@@ -451,4 +482,19 @@ window.addEventListener('load', () => {
   setupNavigation();
   generateCommandPermissionCheckboxes();
   loadConfig();
+  // Add event listener for permission type dropdown
+  const permissionTypeSelect = document.getElementById('permissionTypeSelect');
+  if (permissionTypeSelect) {
+    permissionTypeSelect.addEventListener('change', () => {
+      const modContainer = document.getElementById('moderatorCheckboxesContainer');
+      const adminContainer = document.getElementById('adminCheckboxesContainer');
+      if (permissionTypeSelect.value === 'moderator') {
+        modContainer.style.display = 'block';
+        adminContainer.style.display = 'none';
+      } else {
+        modContainer.style.display = 'none';
+        adminContainer.style.display = 'block';
+      }
+    });
+  }
 });

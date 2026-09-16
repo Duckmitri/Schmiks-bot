@@ -168,7 +168,75 @@ input[type="text"], input[type="number"], textarea { width: min(300px, 52%); pad
 #warningTitle, #warningMessage { border-radius: 12px !important; }
 textarea { width: 100%; resize: vertical; line-height: 1.4; }
 input[type="text"]:focus, input[type="number"]:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 122, 255, .16); }
-.input-with-suffix { display: flex; align-items: center; gap: 8px; }
+/* Select styling - Apple-inspired design */
+.select-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 150px;
+}
+.select-wrapper select {
+  width: 100%;
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--text);
+  background: var(--field);
+  border: 1px solid var(--separator);
+  border-radius: 9px;
+  outline: none;
+  font: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  min-height: 38px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+/* Hover state */
+.select-wrapper select:hover {
+  border-color: rgba(0, 122, 255, .55);
+  background-color: rgba(0, 122, 255, .03);
+}
+/* Focus state */
+.select-wrapper select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, .16);
+}
+/* Disabled state */
+.select-wrapper select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* Wrapper hover state */
+.select-wrapper:hover {
+  border-color: rgba(0, 122, 255, .55);
+}
+/* Custom arrow - subtle and static */
+.select-wrapper::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 4px solid var(--secondary); /* Downward arrow */
+  pointer-events: none;
+  opacity: 0.7;
+  transition: opacity 0.18s ease;
+}
+/* Arrow hover state */
+.select-wrapper:hover::after {
+  opacity: 1;
+  border-bottom-color: var(--text);
+}
+/* Input suffix styling */
+.input-with-suffix {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .input-with-suffix input { width: 84px; text-align: right; }
 .input-with-suffix small { margin: 0; }
 
@@ -238,6 +306,160 @@ input[type="checkbox"]:focus-visible { outline: 3px solid rgba(0, 122, 255, .35)
 .picker-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
 .save-bar { position: fixed; z-index: 2; right: 0; bottom: 0; left: 260px; display: flex; align-items: center; justify-content: flex-end; min-height: 72px; padding: 14px max(24px, calc((100vw - 260px - 760px) / 2)); background: rgba(242, 242, 247, .8); border-top: 1px solid var(--separator); backdrop-filter: blur(22px) saturate(150%); -webkit-backdrop-filter: blur(22px) saturate(150%); }
+
+/* Command permissions selection panel styling */
+#commandPermissionsContainer {
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--separator);
+    border-radius: 16px;
+    margin: 20px 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Enhanced styling for permission type selector */
+.setting-row:has(#permissionTypeSelect) {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--separator);
+}
+
+.setting-row:has(#permissionTypeSelect) label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-weight: 600;
+}
+
+.setting-row:has(#permissionTypeSelect) label small {
+    font-weight: 400;
+    color: var(--secondary);
+    font-size: 0.875rem;
+}
+
+/* Improve the select wrapper for better Apple-like appearance */
+.select-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 150px;
+}
+
+.select-wrapper select {
+    width: 100%;
+    padding: 10px 14px 10px 12px;
+    font-size: 0.9375rem;
+}
+
+/* Hover and focus enhancements */
+.select-wrapper:hover::after {
+    border-bottom-color: var(--text);
+    opacity: 1;
+}
+
+/* Style the checkboxes in the command permissions container */
+#commandPermissionsContainer .setting-row {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--field);
+    align-items: center;
+}
+
+#commandPermissionsContainer .setting-row:last-child {
+    border-bottom: none;
+}
+
+#commandPermissionsContainer .setting-row span {
+    font-weight: 500;
+    flex: 1;
+    color: var(--text);
+}
+
+#commandPermissionsContainer .toggle-color-group {
+    display: flex;
+    align-items: center;
+    min-width: 80px;
+}
+
+/* Style the checkboxes in the command permissions container to match the design system */
+#commandPermissionsContainer .toggle-color-group input[type="checkbox"] {
+    width: 44px;
+    height: 24px;
+    appearance: none;
+    border-radius: 12px;
+    background: var(--field);
+    border: 1px solid var(--separator);
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+#commandPermissionsContainer .toggle-color-group input[type="checkbox"]::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    background: white;
+    transition: transform 0.18s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+#commandPermissionsContainer .toggle-color-group input[type="checkbox"]:checked {
+    background: var(--success);
+    border-color: var(--success);
+}
+
+#commandPermissionsContainer .toggle-color-group input[type="checkbox"]:checked::before {
+    transform: translateX(20px);
+}
+
+#commandPermissionsContainer .toggle-color-group input[type="checkbox"]:focus-visible {
+    outline: 3px solid rgba(0, 122, 255, .35);
+    outline-offset: 0;
+    border-color: var(--accent);
+}
+
+/* Hover state for checkbox */
+#commandPermissionsContainer .toggle-color-group input[type="checkbox"]:hover {
+    background: rgba(52, 199, 89, 0.1);
+    border-color: rgba(52, 199, 89, 0.5);
+}
+
+/* Add subtle hover effect to checkbox labels */
+#commandPermissionsContainer .setting-row:hover span {
+    color: var(--accent);
+}
+
+/* Improve spacing for better readability */
+@media (min-width: 760px) {
+    #commandPermissionsContainer {
+        padding: 24px;
+        margin: 24px 0;
+        border-radius: 20px;
+    }
+
+    .setting-row:has(#permissionTypeSelect) {
+        margin-bottom: 28px;
+        padding-bottom: 20px;
+    }
+}
+
+/* Improve spacing for better readability */
+@media (min-width: 760px) {
+    #commandPermissionsContainer {
+        padding: 24px;
+        margin: 24px 0;
+        border-radius: 20px;
+    }
+
+    .setting-row:has(#permissionTypeSelect) {
+        margin-bottom: 28px;
+        padding-bottom: 20px;
+    }
+}
 .save-bar > button, .picker-actions button { min-width: 128px; padding: 9px 18px; color: #fff; background: var(--accent); border: 0; border-radius: 8px; font-weight: 600; cursor: pointer; }
 .save-bar > button:hover, .picker-actions button:hover { filter: brightness(.94); }
 .save-bar > button:active, .picker-actions button:active { transform: scale(.98); }
@@ -361,6 +583,160 @@ nav a:hover .logging-icon {
     align-items: center;
 }
 
+/* Command permissions selection panel styling */
+#commandPermissionsContainer {
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--separator);
+    border-radius: 16px;
+    margin: 20px 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Enhanced styling for permission type selector */
+.setting-row:has(#permissionTypeSelect) {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--separator);
+}
+
+.setting-row:has(#permissionTypeSelect) label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-weight: 600;
+}
+
+.setting-row:has(#permissionTypeSelect) label small {
+    font-weight: 400;
+    color: var(--secondary);
+    font-size: 0.875rem;
+}
+
+/* Improve the select wrapper for better Apple-like appearance */
+.select-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 150px;
+}
+
+.select-wrapper select {
+    width: 100%;
+    padding: 10px 14px 10px 12px;
+    font-size: 0.9375rem;
+}
+
+/* Hover and focus enhancements */
+.select-wrapper:hover::after {
+    border-bottom-color: var(--text);
+    opacity: 1;
+}
+
+/* Style the checkboxes in the command permissions container */
+#commandPermissionsContainer .setting-row {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--field);
+    align-items: center;
+}
+
+#commandPermissionsContainer .setting-row:last-child {
+    border-bottom: none;
+}
+
+#commandPermissionsContainer .setting-row span {
+    font-weight: 500;
+    flex: 1;
+    color: var(--text);
+}
+
+#commandPermissionsContainer .toggle-color-group {
+    display: flex;
+    align-items: center;
+    min-width: 80px;
+}
+
+/* Style the checkboxes in the command permissions container to match the design system */
+#commandPermissionsContainer .toggle-color-group input[type="checkbox"] {
+    width: 44px;
+    height: 24px;
+    appearance: none;
+    border-radius: 12px;
+    background: var(--field);
+    border: 1px solid var(--separator);
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+#commandPermissionsContainer .toggle-color-group input[type="checkbox"]::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    background: white;
+    transition: transform 0.18s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+#commandPermissionsContainer .toggle-color-group input[type="checkbox"]:checked {
+    background: var(--success);
+    border-color: var(--success);
+}
+
+#commandPermissionsContainer .toggle-color-group input[type="checkbox"]:checked::before {
+    transform: translateX(20px);
+}
+
+#commandPermissionsContainer .toggle-color-group input[type="checkbox"]:focus-visible {
+    outline: 3px solid rgba(0, 122, 255, .35);
+    outline-offset: 0;
+    border-color: var(--accent);
+}
+
+/* Hover state for checkbox */
+#commandPermissionsContainer .toggle-color-group input[type="checkbox"]:hover {
+    background: rgba(52, 199, 89, 0.1);
+    border-color: rgba(52, 199, 89, 0.5);
+}
+
+/* Add subtle hover effect to checkbox labels */
+#commandPermissionsContainer .setting-row:hover span {
+    color: var(--accent);
+}
+
+/* Improve spacing for better readability */
+@media (min-width: 760px) {
+    #commandPermissionsContainer {
+        padding: 24px;
+        margin: 24px 0;
+        border-radius: 20px;
+    }
+
+    .setting-row:has(#permissionTypeSelect) {
+        margin-bottom: 28px;
+        padding-bottom: 20px;
+    }
+}
+
+/* Improve spacing for better readability */
+@media (min-width: 760px) {
+    #commandPermissionsContainer {
+        padding: 24px;
+        margin: 24px 0;
+        border-radius: 20px;
+    }
+
+    .setting-row:has(#permissionTypeSelect) {
+        margin-bottom: 28px;
+        padding-bottom: 20px;
+    }
+}
+
 .role-tag {
     display: flex;
     align-items: center;
@@ -388,4 +764,18 @@ nav a:hover .logging-icon {
 
 .role-tag .remove-role:hover {
     background: rgba(0,0,0,0.2);
+}
+
+/* Icon animations when section is active (selected) */
+nav a.active .general-icon img {
+    animation: spin 3s linear infinite;
+}
+nav a.active .roles-icon img {
+    animation: wiggle 0.5s ease-in-out infinite;
+}
+nav a.active .logging-icon {
+    animation: blinkUnderline 1s step-start infinite;
+}
+nav a.active .infractions-icon::before {
+    animation: pulse 1.5s ease-in-out infinite;
 }
