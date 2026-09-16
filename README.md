@@ -75,7 +75,8 @@ Configuration precedence is `BOT_PREFIX`, then `config/config.json`, then `!`. S
 
 This is the web dashboard, you can manipulate a bunch of configuartions for the bot directly.
 
-<img width="1847" height="927" alt="dashboard-sc" src="https://github.com/user-attachments/assets/07a57a15-63ff-4b1b-91e2-2b6277a67722" />
+<img width="1859" height="928" alt="dashboard-sc" src="https://github.com/user-attachments/assets/dd6915dd-2d4b-492a-9bc3-fd85d932f3cb" />
+
 
 
 ## Development workflow
