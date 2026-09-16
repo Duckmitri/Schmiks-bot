@@ -12,3 +12,5 @@ data/*.db-wal
 data/*.db-shm
 test/
 .remember/
+docs/
+FINAL_SUMMARY.md
